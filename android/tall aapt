@@ -1,0 +1,42 @@
+[32mapksigner[0m/stable 33.0.1-1 all
+  APK signing tool from Android SDK
+
+[32md8[0m/stable 33.0.1-1 all
+  DEX bytecode compiler from Android SDK
+
+[32mdotnet-sdk-10.0[0m/stable 10.0.9 aarch64
+  .NET 10.0 SDK
+
+[32mdotnet-sdk-8.0[0m/stable 8.0.28 aarch64
+  .NET 8.0 SDK
+
+[32mdotnet-sdk-9.0[0m/stable 9.0.17 aarch64
+  .NET 9.0 SDK
+
+[32mdotnet-sdk-dbg-10.0[0m/stable 10.0.9 aarch64
+  .NET 10.0 SDK Managed Debug Symbols
+
+[32mdotnet-sdk-dbg-8.0[0m/stable 8.0.28 aarch64
+  .NET 8.0 SDK Managed Debug Symbols
+
+[32mdotnet-sdk-dbg-9.0[0m/stable 9.0.17 aarch64
+  .NET 9.0 SDK Managed Debug Symbols
+
+[32mladspa-sdk[0m/stable 1.17-3 aarch64
+  Linux Audio Developer's Simple Plugin API
+
+[32mlibbullet[0m/stable 3.25-2 aarch64
+  SDK for real-time collision detection and multi-physics simulation for robotics, VR, etc
+
+[32mlibvpx[0m/stable 1:1.16.0 aarch64
+  VP8 & VP9 Codec SDK
+
+[32munixodbc[0m/stable 2.3.14 aarch64
+  An Open Source ODBC sub-system and an ODBC SDK for Linux, Mac OSX, and UNIX
+
+[32mvamp-plugin-sdk[0m/stable 2.10-3 aarch64
+  An API for audio analysis and feature extraction plugins
+
+[32mvamp-plugin-sdk-static[0m/stable 2.10-3 aarch64
+  Static libraries for vamp-plugin-sdk
+

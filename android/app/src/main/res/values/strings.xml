@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Faso Tricycle</string>
+    <string name="title_activity_main">Faso Tricycle</string>
+    <string name="package_name">com.fasotricycle.app</string>
+    <string name="custom_url_scheme">com.fasotricycle.app</string>
+</resources>
