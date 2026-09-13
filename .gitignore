@@ -1,0 +1,10 @@
+node_modules/
+*.sauvegarde
+*.sauvegarde-*
+*.travail
+server_ancien.js
+server_sauvegarde_v1.js
+demandes.json
+data/*.json
+*.avant-nettoyage
+server.js.sauvegarde*

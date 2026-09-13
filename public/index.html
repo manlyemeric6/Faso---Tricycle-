@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Faso Tricycle V3 🇧🇫</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f3f6f8;
+  color:#17202a;
+}
+
+header{
+  background:linear-gradient(135deg,#087f23,#0b9b35);
+  color:white;
+  padding:22px 16px;
+  text-align:center;
+}
+
+header h1{
+  margin:0;
+  font-size:28px;
+}
+
+header p{
+  margin:7px 0 0;
+}
+
+nav{
+  display:flex;
+  gap:6px;
+  padding:10px;
+  background:white;
+  position:sticky;
+  top:0;
+  z-index:20;
+  box-shadow:0 2px 8px #0002;
+}
+
+nav button{
+  flex:1;
+  padding:11px 4px;
+  border:0;
+  border-radius:10px;
+  background:#e8ecef;
+  font-weight:bold;
+}
+
+nav button.active{
+  background:#087f23;
+  color:white;
+}
+
+main{
+  max-width:950px;
+  margin:auto;
+  padding:15px;
+}
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.card{
+  background:white;
+  border-radius:15px;
+  padding:18px;
+  margin-bottom:15px;
+  box-shadow:0 3px 12px #0001;
+}
+
+.card h2{
+  margin-top:0;
+}
+
+label{
+  display:block;
+  font-weight:bold;
+  margin-top:12px;
+}
+
+input,select{
+  width:100%;
+  padding:13px;
+  margin-top:6px;
+  border:1px solid #ccd2d6;
+  border-radius:9px;
+  font-size:16px;
+}
+
+button.primary{
+  width:100%;
+  padding:14px;
+  margin-top:15px;
+  border:0;
+  border-radius:10px;
+  background:#087f23;
+  color:white;
+  font-weight:bold;
+  font-size:16px;
+}
+
+button.primary:disabled{
+  opacity:.6;
+}
+
+button.secondary{
+  padding:10px;
+  border:0;
+  border-radius:8px;
+  background:#e8ecef;
+  margin:4px;
+  font-weight:bold;
+}
+
+button.gps{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:0;
+  border-radius:10px;
+  background:#1769aa;
+  color:white;
+  font-weight:bold;
+}
+
+button.warning{
+  background:#f0a500;
+  color:white;
+}
+
+.item{
+  border-left:5px solid #087f23;
+  padding:12px;
+  margin:10px 0;
+  background:#f8fafb;
+  border-radius:8px;
+}
+
+.success{
+  border-left-color:#087f23;
+}
+
+.info{
+  border-left-color:#1769aa;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 8px;
+  border-radius:8px;
+  background:#e8ecef;
+  font-size:13px;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+
+.stat{
+  background:#f0f4f6;
+  border-radius:12px;
+  padding:15px;
+  text-align:center;
+}
+
+.stat strong{
+  display:block;
+  font-size:25px;
+  margin-top:5px;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.muted{
+  color:#667;
+}
+
+.gps-ok{
+  color:#087f23;
+  font-weight:bold;
+}
+
+.gps-no{
+  color:#a66;
+}
+
+hr{
+  border:0;
+  border-top:1px solid #ddd;
+  margin:18px 0;
+}
+
+.small{
+  font-size:13px;
+}
+
+.tarif-box{
+  background:#eef8f0;
+  border-radius:12px;
+  padding:14px;
+  margin-top:12px;
+}
+
+.tarif{
+  font-size:24px;
+  font-weight:bold;
+  color:#087f23;
+}
+
+footer{
+  text-align:center;
+  color:#777;
+  padding:20px;
+  font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🛺 Faso Tricycle 🇧🇫</h1>
+<p>Ton tricycle, en quelques clics.</p>
+</header>
+
+<nav>
+<button class="active" onclick="ouvrir('client',this)">👤 Client</button>
+<button onclick="ouvrir('conducteur',this)">🛺 Conducteur</button>
+<button onclick="ouvrir('admin',this)">🛠️ Admin</button>
+</nav>
+
+<main>
+
+<!-- ================= CLIENT ================= -->
+
+<section id="client" class="section active">
+
+<div class="card">
+
+<h2>📍 Commander un tricycle</h2>
+
+<label>Point de départ</label>
+
+<input
+id="depart"
+placeholder="Ex : Kalgondin">
+
+<button
+type="button"
+class="gps"
+onclick="localiserDepart()">
+📍 Utiliser ma position actuelle
+</button>
+
+<div id="gpsDepartMessage" class="small muted">
+Position GPS non détectée.
+</div>
+
+<input
+id="departLat"
+type="hidden">
+
+<input
+id="departLng"
+type="hidden">
+
+
+<label>Destination</label>
+
+<input
+id="destination"
+placeholder="Ex : Ouaga 2000">
+
+<button
+type="button"
+class="gps"
+onclick="localiserDestination()">
+📍 Positionner la destination
+</button>
+
+<div id="gpsDestinationMessage" class="small muted">
+Position GPS de destination non détectée.
+</div>
+
+<input
+id="destinationLat"
+type="hidden">
+
+<input
+id="destinationLng"
+type="hidden">
+
+
+<label>Nom du client</label>
+
+<input
+id="clientNom"
+placeholder="Votre nom">
+
+
+<label>Téléphone</label>
+
+<input
+id="clientTel"
+placeholder="70 00 00 00"
+inputmode="tel">
+
+
+<label>Type de tarif</label>
+
+<select id="trajet">
+
+<option value="auto">
+🤖 Automatique selon distance
+</option>
+
+<option value="court">
+Court — 3 000 FCFA
+</option>
+
+<option value="moyen">
+Moyen — 5 000 FCFA
+</option>
+
+<option value="long">
+Long — 500 FCFA/km
+</option>
+
+</select>
+
+
+<div class="tarif-box">
+
+<div>📏 Distance estimée</div>
+
+<div id="distanceEstimee">
+En attente du GPS
+</div>
+
+<div style="margin-top:8px">
+💰 Tarif estimé
+</div>
+
+<div
+id="tarifEstime"
+class="tarif">
+—
+</div>
+
+<div class="small muted">
+La distance GPS est calculée à vol d'oiseau.
+</div>
+
+</div>
+
+
+<button
+id="btnCalculer"
+class="secondary"
+type="button"
+onclick="calculerTarif()">
+💰 Calculer le tarif
+</button>
+
+
+<button
+id="btnCommander"
+class="primary"
+onclick="commander()">
+
+🛺 Commander maintenant
+
+</button>
+
+<div id="messageCommande"></div>
+
+</div>
+
+
+<!-- HISTORIQUE -->
+
+<div class="card">
+
+<h2>📋 Mes demandes</h2>
+
+<div id="historique">
+Chargement...
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ================= CONDUCTEUR ================= -->
+
+<section id="conducteur" class="section">
+
+<div class="card">
+
+<h2>🛺 Espace conducteur</h2>
+
+<label>Nom du conducteur</label>
+
+<input
+id="condNom"
+placeholder="Ex : Issa Traoré">
+
+
+<label>Téléphone</label>
+
+<input
+id="condTel"
+placeholder="70 00 00 00"
+inputmode="tel">
+
+
+<label>Zone</label>
+
+<input
+id="condZone"
+placeholder="Ex : Kalgondin">
+
+
+<button
+class="gps"
+type="button"
+onclick="localiserConducteur()">
+
+📍 Enregistrer ma position GPS
+
+</button>
+
+<div id="gpsConducteurMessage"
+class="small muted">
+
+Position GPS non enregistrée.
+
+</div>
+
+<input
+id="condLat"
+type="hidden">
+
+<input
+id="condLng"
+type="hidden">
+
+
+<button
+class="primary"
+onclick="ajouterConducteur()">
+
+➕ Ajouter mon profil conducteur
+
+</button>
+
+<div id="messageConducteur"></div>
+
+</div>
+
+
+<div class="card">
+
+<h2>🟢 Conducteurs</h2>
+
+<div id="listeConducteurs">
+Chargement...
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>🚦 Courses disponibles</h2>
+
+<div id="coursesConducteur">
+Chargement...
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ================= ADMIN ================= -->
+
+<section id="admin" class="section">
+
+<div class="card">
+
+<h2>🛠️ Tableau de bord</h2>
+
+<div class="stats">
+
+<div class="stat">
+Demandes
+<strong id="statDemandes">0</strong>
+</div>
+
+<div class="stat">
+Conducteurs
+<strong id="statConducteurs">0</strong>
+</div>
+
+<div class="stat">
+Disponibles
+<strong id="statDisponibles">0</strong>
+</div>
+
+<div class="stat">
+En course
+<strong id="statCourses">0</strong>
+</div>
+
+<div class="stat">
+Terminées
+<strong id="statTerminees">0</strong>
+</div>
+
+<div class="stat">
+Annulées
+<strong id="statAnnulees">0</strong>
+</div>
+
+</div>
+
+<hr>
+
+<div class="stat">
+
+Chiffre d'affaires terminé
+
+<strong id="statCA">
+0 FCFA
+</strong>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>📋 Toutes les demandes</h2>
+
+<div id="adminDemandes">
+Chargement...
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+
+<footer>
+Faso Tricycle 🇧🇫 — Version V3
+</footer>
+
+
+<script>
+
+const API="/api";
+
+let commandeEnCours=false;
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function ouvrir(id,bouton){
+
+  document
+    .querySelectorAll(".section")
+    .forEach(s=>s.classList.remove("active"));
+
+  document
+    .querySelectorAll("nav button")
+    .forEach(b=>b.classList.remove("active"));
+
+  document
+    .getElementById(id)
+    .classList.add("active");
+
+  bouton.classList.add("active");
+
+  actualiser();
+}
+
+
+/* =========================
+   GPS
+========================= */
+
+function obtenirPosition(){
+
+  return new Promise((resolve,reject)=>{
+
+    if(!navigator.geolocation){
+
+      reject(
+        new Error("La géolocalisation n'est pas disponible.")
+      );
+
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+
+      position=>{
+
+        resolve({
+          latitude:position.coords.latitude,
+          longitude:position.coords.longitude
+        });
+
+      },
+
+      erreur=>{
+
+        let message="Impossible d'obtenir la position.";
+
+        if(erreur.code===1){
+          message="Autorisation GPS refusée.";
+        }
+
+        if(erreur.code===2){
+          message="Position GPS indisponible.";
+        }
+
+        if(erreur.code===3){
+          message="Délai GPS dépassé.";
+        }
+
+        reject(new Error(message));
+
+      },
+
+      {
+        enableHighAccuracy:true,
+        timeout:15000,
+        maximumAge:30000
+      }
+
+    );
+
+  });
+
+}
+
+
+/* =========================
+   GPS DEPART
+========================= */
+
+async function localiserDepart(){
+
+  const zone=document.getElementById(
+    "gpsDepartMessage"
+  );
+
+  zone.textContent="📡 Recherche de votre position...";
+
+  try{
+
+    const p=await obtenirPosition();
+
+    document.getElementById(
+      "departLat"
+    ).value=p.latitude;
+
+    document.getElementById(
+      "departLng"
+    ).value=p.longitude;
+
+    zone.innerHTML=
+      "✅ Position de départ détectée.";
+
+    zone.className="small gps-ok";
+
+    if(
+      !document.getElementById("depart").value.trim()
+    ){
+
+      document.getElementById("depart").value=
+        "Ma position actuelle";
+
+    }
+
+    actualiserTarifLocal();
+
+  }catch(e){
+
+    zone.textContent="❌ "+e.message;
+
+    zone.className="small gps-no";
+
+  }
+
+}
+
+
+/* =========================
+   GPS DESTINATION
+========================= */
+
+async function localiserDestination(){
+
+  const zone=document.getElementById(
+    "gpsDestinationMessage"
+  );
+
+  zone.textContent=
+    "📡 Recherche de la position...";
+
+  try{
+
+    const p=await obtenirPosition();
+
+    document.getElementById(
+      "destinationLat"
+    ).value=p.latitude;
+
+    document.getElementById(
+      "destinationLng"
+    ).value=p.longitude;
+
+    zone.innerHTML=
+      "✅ Position de destination enregistrée.";
+
+    zone.className="small gps-ok";
+
+    if(
+      !document.getElementById(
+        "destination"
+      ).value.trim()
+    ){
+
+      document.getElementById(
+        "destination"
+      ).value=
+        "Destination GPS";
+
+    }
+
+    actualiserTarifLocal();
+
+  }catch(e){
+
+    zone.textContent="❌ "+e.message;
+
+    zone.className="small gps-no";
+
+  }
+
+}
+
+
+/* =========================
+   GPS CONDUCTEUR
+========================= */
+
+async function localiserConducteur(){
+
+  const zone=document.getElementById(
+    "gpsConducteurMessage"
+  );
+
+  zone.textContent=
+    "📡 Recherche de votre position...";
+
+  try{
+
+    const p=await obtenirPosition();
+
+    document.getElementById(
+      "condLat"
+    ).value=p.latitude;
+
+    document.getElementById(
+      "condLng"
+    ).value=p.longitude;
+
+    zone.innerHTML=
+      "✅ Position conducteur détectée.";
+
+    zone.className="small gps-ok";
+
+  }catch(e){
+
+    zone.textContent="❌ "+e.message;
+
+    zone.className="small gps-no";
+
+  }
+
+}
+
+
+/* =========================
+   DISTANCE / TARIF LOCAL
+========================= */
+
+function distanceGPS(
+  lat1,
+  lng1,
+  lat2,
+  lng2
+){
+
+  const R=6371;
+
+  const dLat=
+    (lat2-lat1)*Math.PI/180;
+
+  const dLng=
+    (lng2-lng1)*Math.PI/180;
+
+  const a=
+    Math.sin(dLat/2)**2+
+    Math.cos(lat1*Math.PI/180)*
+    Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)**2;
+
+  return R*
+    2*
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1-a)
+    );
+
+}
+
+
+function tarifLocal(km){
+
+  if(km<=5){
+    return 3000;
+  }
+
+  if(km<=10){
+    return 5000;
+  }
+
+  return Math.max(
+    5000,
+    Math.ceil(km)*500
+  );
+
+}
+
+
+function actualiserTarifLocal(){
+
+  const lat1=Number(
+    document.getElementById("departLat").value
+  );
+
+  const lng1=Number(
+    document.getElementById("departLng").value
+  );
+
+  const lat2=Number(
+    document.getElementById("destinationLat").value
+  );
+
+  const lng2=Number(
+    document.getElementById("destinationLng").value
+  );
+
+  if(
+    !Number.isFinite(lat1)||
+    !Number.isFinite(lng1)||
+    !Number.isFinite(lat2)||
+    !Number.isFinite(lng2)
+  ){
+
+    document.getElementById(
+      "distanceEstimee"
+    ).textContent=
+      "En attente des deux positions GPS";
+
+    document.getElementById(
+      "tarifEstime"
+    ).textContent="—";
+
+    return;
+
+  }
+
+  const km=distanceGPS(
+    lat1,
+    lng1,
+    lat2,
+    lng2
+  );
+
+  const tarif=tarifLocal(km);
+
+  document.getElementById(
+    "distanceEstimee"
+  ).textContent=
+    km.toFixed(2)+" km";
+
+  document.getElementById(
+    "tarifEstime"
+  ).textContent=
+    tarif.toLocaleString()+" FCFA";
+
+}
+
+
+/* =========================
+   CALCUL SERVEUR
+========================= */
+
+async function calculerTarif(){
+
+  const departLat=Number(
+    document.getElementById("departLat").value
+  );
+
+  const departLng=Number(
+    document.getElementById("departLng").value
+  );
+
+  const destinationLat=Number(
+    document.getElementById(
+      "destinationLat"
+    ).value
+  );
+
+  const destinationLng=Number(
+    document.getElementById(
+      "destinationLng"
+    ).value
+  );
+
+  if(
+    !Number.isFinite(departLat)||
+    !Number.isFinite(departLng)||
+    !Number.isFinite(destinationLat)||
+    !Number.isFinite(destinationLng)
+  ){
+
+    alert(
+      "Veuillez enregistrer la position GPS du départ et de la destination."
+    );
+
+    return;
+
+  }
+
+  try{
+
+    const r=await fetch(
+      API+"/calcul-tarif",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          departLat,
+          departLng,
+          destinationLat,
+          destinationLng
+        })
+      }
+    );
+
+    const data=await r.json();
+
+    if(!r.ok){
+
+      alert(
+        data.erreur||
+        "Calcul impossible."
+      );
+
+      return;
+
+    }
+
+    document.getElementById(
+      "distanceEstimee"
+    ).textContent=
+      data.distanceKm+
+      " km";
+
+    document.getElementById(
+      "tarifEstime"
+    ).textContent=
+      Number(data.tarif)
+      .toLocaleString()+
+      " FCFA";
+
+  }catch(e){
+
+    alert(
+      "Erreur pendant le calcul du tarif."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   COMMANDER
+========================= */
+
+async function commander(){
+
+  if(commandeEnCours){
+    return;
+  }
+
+  const depart=
+    document.getElementById(
+      "depart"
+    ).value.trim();
+
+  const destination=
+    document.getElementById(
+      "destination"
+    ).value.trim();
+
+  const client=
+    document.getElementById(
+      "clientNom"
+    ).value.trim();
+
+  const telephone=
+    document.getElementById(
+      "clientTel"
+    ).value.trim();
+
+  const trajet=
+    document.getElementById(
+      "trajet"
+    ).value;
+
+  const departLat=
+    document.getElementById(
+      "departLat"
+    ).value;
+
+  const departLng=
+    document.getElementById(
+      "departLng"
+    ).value;
+
+  const destinationLat=
+    document.getElementById(
+      "destinationLat"
+    ).value;
+
+  const destinationLng=
+    document.getElementById(
+      "destinationLng"
+    ).value;
+
+
+  if(!depart||!destination){
+
+    alert(
+      "Veuillez renseigner le départ et la destination."
+    );
+
+    return;
+
+  }
+
+
+  const bouton=
+    document.getElementById(
+      "btnCommander"
+    );
+
+  commandeEnCours=true;
+
+  bouton.disabled=true;
+
+  bouton.textContent=
+    "⏳ Enregistrement...";
+
+
+  try{
+
+    const r=await fetch(
+      API+"/demandes",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:JSON.stringify({
+
+          depart,
+          destination,
+
+          client:
+            client||"Client",
+
+          telephone,
+
+          trajet,
+
+          departLat,
+          departLng,
+
+          destinationLat,
+          destinationLng
+
+        })
+
+      }
+    );
+
+
+    const data=await r.json();
+
+
+    if(!r.ok){
+
+      throw new Error(
+        data.erreur||
+        "Erreur"
+      );
+
+    }
+
+
+    document.getElementById(
+      "messageCommande"
+    ).innerHTML=`
+
+    <div class="item success">
+
+      <strong>
+        ✅ Demande enregistrée
+      </strong>
+
+      <br>
+
+      📍 ${data.demande.depart}
+      →
+      ${data.demande.destination}
+
+      <br>
+
+      📏 Distance :
+      <strong>
+        ${Number(
+          data.demande.kilometres||0
+        ).toFixed(2)}
+        km
+      </strong>
+
+      <br>
+
+      💰 Tarif estimé :
+      <strong>
+        ${Number(
+          data.demande.tarif
+        ).toLocaleString()}
+        FCFA
+      </strong>
+
+      <br>
+
+      🕐 ${data.demande.date}
+
+      <br>
+
+      <span class="badge">
+        ${data.demande.statut}
+      </span>
+
+    </div>
+
+    `;
+
+
+    document.getElementById(
+      "depart"
+    ).value="";
+
+    document.getElementById(
+      "destination"
+    ).value="";
+
+    document.getElementById(
+      "clientNom"
+    ).value="";
+
+    document.getElementById(
+      "clientTel"
+    ).value="";
+
+    document.getElementById(
+      "departLat"
+    ).value="";
+
+    document.getElementById(
+      "departLng"
+    ).value="";
+
+    document.getElementById(
+      "destinationLat"
+    ).value="";
+
+    document.getElementById(
+      "destinationLng"
+    ).value="";
+
+    document.getElementById(
+      "gpsDepartMessage"
+    ).textContent=
+      "Position GPS non détectée.";
+
+    document.getElementById(
+      "gpsDestinationMessage"
+    ).textContent=
+      "Position GPS de destination non détectée.";
+
+    document.getElementById(
+      "distanceEstimee"
+    ).textContent=
+      "En attente du GPS";
+
+    document.getElementById(
+      "tarifEstime"
+    ).textContent="—";
+
+
+    actualiser();
+
+  }catch(e){
+
+    console.error(e);
+
+    alert(
+      e.message||
+      "Impossible d'enregistrer la demande."
+    );
+
+  }finally{
+
+    commandeEnCours=false;
+
+    bouton.disabled=false;
+
+    bouton.textContent=
+      "🛺 Commander maintenant";
+
+  }
+
+}
+
+
+/* =========================
+   AJOUT CONDUCTEUR
+========================= */
+
+async function ajouterConducteur(){
+
+  const nom=
+    document.getElementById(
+      "condNom"
+    ).value.trim();
+
+  const telephone=
+    document.getElementById(
+      "condTel"
+    ).value.trim();
+
+  const zone=
+    document.getElementById(
+      "condZone"
+    ).value.trim();
+
+  const latitude=
+    document.getElementById(
+      "condLat"
+    ).value;
+
+  const longitude=
+    document.getElementById(
+      "condLng"
+    ).value;
+
+
+  if(!nom||!telephone){
+
+    alert(
+      "Nom et téléphone obligatoires."
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    const r=await fetch(
+      API+"/conducteurs",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:JSON.stringify({
+
+          nom,
+          telephone,
+          zone,
+          latitude,
+          longitude
+
+        })
+
+      }
+    );
+
+
+    const data=await r.json();
+
+
+    if(!r.ok){
+
+      throw new Error(
+        data.erreur||
+        "Erreur"
+      );
+
+    }
+
+
+    document.getElementById(
+      "messageConducteur"
+    ).innerHTML=`
+
+    <div class="item success">
+
+      ✅ Profil conducteur enregistré.
+
+      <br>
+
+      🛺 ${data.conducteur.nom}
+
+      <br>
+
+      📞 ${data.conducteur.telephone}
+
+      <br>
+
+      ${
+        data.conducteur.latitude
+        ?
+        "📍 GPS enregistré"
+        :
+        "📍 GPS non enregistré"
+      }
+
+    </div>
+
+    `;
+
+
+    document.getElementById(
+      "condNom"
+    ).value="";
+
+    document.getElementById(
+      "condTel"
+    ).value="";
+
+    document.getElementById(
+      "condZone"
+    ).value="";
+
+    document.getElementById(
+      "condLat"
+    ).value="";
+
+    document.getElementById(
+      "condLng"
+    ).value="";
+
+
+    actualiser();
+
+  }catch(e){
+
+    alert(
+      e.message||
+      "Erreur conducteur"
+    );
+
+  }
+
+}
+
+
+/* =========================
+   ACTUALISATION
+========================= */
+
+async function actualiser(){
+
+  try{
+
+    const [
+      dr,
+      cr,
+      da
+    ]=await Promise.all([
+
+      fetch(
+        API+"/demandes"
+      ),
+
+      fetch(
+        API+"/conducteurs"
+      ),
+
+      fetch(
+        API+"/dashboard"
+      )
+
+    ]);
+
+
+    const demandes=
+      await dr.json();
+
+    const conducteurs=
+      await cr.json();
+
+    const dashboard=
+      await da.json();
+
+
+    afficherDemandes(
+      demandes,
+      conducteurs
+    );
+
+    afficherConducteurs(
+      conducteurs
+    );
+
+    afficherCourses(
+      demandes,
+      conducteurs
+    );
+
+    afficherAdmin(
+      demandes
+    );
+
+
+    document.getElementById(
+      "statDemandes"
+    ).textContent=
+      dashboard.demandes;
+
+    document.getElementById(
+      "statConducteurs"
+    ).textContent=
+      dashboard.conducteurs;
+
+    document.getElementById(
+      "statDisponibles"
+    ).textContent=
+      dashboard.disponibles;
+
+    document.getElementById(
+      "statCourses"
+    ).textContent=
+      dashboard.courses;
+
+    document.getElementById(
+      "statTerminees"
+    ).textContent=
+      dashboard.terminees||0;
+
+    document.getElementById(
+      "statAnnulees"
+    ).textContent=
+      dashboard.annulees||0;
+
+    document.getElementById(
+      "statCA"
+    ).textContent=
+      Number(
+        dashboard.chiffreAffaires||0
+      ).toLocaleString()+
+      " FCFA";
+
+
+  }catch(e){
+
+    console.error(
+      "Actualisation:",
+      e
+    );
+
+  }
+
+}
+
+
+/* =========================
+   HISTORIQUE CLIENT
+========================= */
+
+function afficherDemandes(
+  demandes,
+  conducteurs
+){
+
+  const zone=
+    document.getElementById(
+      "historique"
+    );
+
+
+  if(!demandes.length){
+
+    zone.innerHTML=
+      "<p class='muted'>Aucune demande pour le moment.</p>";
+
+    return;
+
+  }
+
+
+  zone.innerHTML=
+    demandes.map(d=>`
+
+    <div class="item">
+
+      <strong>
+        📍 ${d.depart}
+        →
+        ${d.destination}
+      </strong>
+
+      <p>
+        🕐 ${d.date}
+      </p>
+
+      <p>
+        📏 ${Number(
+          d.kilometres||0
+        ).toFixed(2)}
+        km
+      </p>
+
+      <p>
+        💰 ${Number(
+          d.tarif||0
+        ).toLocaleString()}
+        FCFA
+      </p>
+
+      <p>
+        👤 ${d.client||"Client"}
+      </p>
+
+      <p>
+        📞 ${d.telephone||"Non renseigné"}
+      </p>
+
+      <span class="badge">
+        ${d.statut}
+      </span>
+
+      ${
+        d.conducteur
+        ?
+
+        `
+
+        <p>
+          🛺 Conducteur :
+          <strong>
+            ${d.conducteur}
+          </strong>
+
+          <br>
+
+          📞 ${d.telephoneConducteur}
+
+          ${
+            d.distanceConducteur
+            ?
+            `<br>
+             📍 Conducteur à
+             ${d.distanceConducteur}
+             km`
+            :
+            ""
+          }
+
+        </p>
+
+        `
+
+        :
+
+        ""
+
+      }
+
+    </div>
+
+    `).join("");
+
+}
+
+
+/* =========================
+   CONDUCTEURS
+========================= */
+
+function afficherConducteurs(
+  conducteurs
+){
+
+  const zone=
+    document.getElementById(
+      "listeConducteurs"
+    );
+
+
+  if(!conducteurs.length){
+
+    zone.innerHTML=
+      "<p class='muted'>Aucun conducteur enregistré.</p>";
+
+    return;
+
+  }
+
+
+  zone.innerHTML=
+    conducteurs.map(c=>`
+
+    <div class="item">
+
+      <strong>
+        🛺 ${c.nom}
+      </strong>
+
+      <p>
+        📞 ${c.telephone}
+      </p>
+
+      <p>
+        📍 ${c.zone||"Zone non précisée"}
+      </p>
+
+      <p>
+        ${
+          c.latitude!==null &&
+          c.longitude!==null
+          ?
+          "📡 GPS disponible"
+          :
+          "📡 GPS non disponible"
+        }
+      </p>
+
+      <span class="badge">
+
+        ${
+          c.statut==="Disponible"
+          ?
+          "🟢 Disponible"
+          :
+          "🔴 En course"
+        }
+
+      </span>
+
+    </div>
+
+    `).join("");
+
+}
+
+
+/* =========================
+   COURSES CONDUCTEUR
+========================= */
+
+function afficherCourses(
+  demandes,
+  conducteurs
+){
+
+  const zone=
+    document.getElementById(
+      "coursesConducteur"
+    );
+
+
+  const courses=
+    demandes.filter(d=>
+
+      (
+        d.statut===
+        "Recherche d’un conducteur"
+
+        ||
+
+        d.statut===
+        "Recherche d'un conducteur"
+
+      )
+
+      &&
+
+      !d.conducteurId
+
+    );
+
+
+  if(!courses.length){
+
+    zone.innerHTML=
+      "<p class='muted'>Aucune course en attente.</p>";
+
+    return;
+
+  }
+
+
+  const disponibles=
+    conducteurs.filter(
+      c=>c.statut==="Disponible"
+    );
+
+
+  zone.innerHTML=
+    courses.map(d=>`
+
+    <div class="item">
+
+      <strong>
+        📍 ${d.depart}
+        →
+        ${d.destination}
+      </strong>
+
+      <p>
+        👤 ${d.client||"Client"}
+      </p>
+
+      <p>
+        📞 ${d.telephone||"Non renseigné"}
+      </p>
+
+      <p>
+        💰 ${Number(
+          d.tarif||0
+        ).toLocaleString()}
+        FCFA
+      </p>
+
+      <p>
+        📏 ${Number(
+          d.kilometres||0
+        ).toFixed(2)}
+        km
+      </p>
+
+      <p>
+        🕐 ${d.date}
+      </p>
+
+      <span class="badge">
+        🔎 Recherche d’un conducteur
+      </span>
+
+      <div style="margin-top:10px">
+
+      ${
+        disponibles.length
+
+        ?
+
+        disponibles.map(c=>`
+
+          <button
+            type="button"
+            class="secondary"
+            onclick="
+              event.preventDefault();
+              event.stopPropagation();
+              assigner(${d.id},${c.id})
+            "
+          >
+
+            🛺 Accepter avec
+            ${c.nom}
+
+          </button>
+
+        `).join("")
+
+        :
+
+        "<p class='muted'>🟠 Aucun conducteur disponible.</p>"
+
+      }
+
+      </div>
+
+    </div>
+
+    `).join("");
+
+}
+
+
+/* =========================
+   ADMIN
+========================= */
+
+function afficherAdmin(
+  demandes
+){
+
+  const zone=
+    document.getElementById(
+      "adminDemandes"
+    );
+
+
+  if(!demandes.length){
+
+    zone.innerHTML=
+      "<p>Aucune demande.</p>";
+
+    return;
+
+  }
+
+
+  zone.innerHTML=
+    demandes.map(d=>`
+
+    <div class="item">
+
+      <strong>
+        #${d.id}
+      </strong>
+
+      <br>
+
+      📍 ${d.depart}
+      →
+      ${d.destination}
+
+      <br>
+
+      💰 ${Number(
+        d.tarif||0
+      ).toLocaleString()}
+      FCFA
+
+      <br>
+
+      📏 ${Number(
+        d.kilometres||0
+      ).toFixed(2)}
+      km
+
+      <br>
+
+      🕐 ${d.date}
+
+      <br>
+
+      👤 ${d.client||"Client"}
+
+      <br>
+
+      📞 ${d.telephone||"Non renseigné"}
+
+      <p>
+
+        <span class="badge">
+          ${d.statut}
+        </span>
+
+      </p>
+
+
+      ${
+        d.conducteur
+        ?
+
+        `
+
+        🛺 Conducteur :
+        <strong>
+          ${d.conducteur}
+        </strong>
+
+        <br>
+
+        📞 ${d.telephoneConducteur}
+
+        ${
+          d.distanceConducteur
+          ?
+          `<br>
+           📍 Distance conducteur :
+           ${d.distanceConducteur} km`
+          :
+          ""
+        }
+
+        `
+
+        :
+
+        ""
+
+      }
+
+
+      ${
+        d.conducteur
+
+        ?
+
+        `
+
+        <br>
+
+        ${
+          d.statut!=="En course"
+          &&
+          d.statut!=="Terminée"
+          &&
+          d.statut!=="Annulée"
+
+          ?
+
+          `
+
+          <button
+            type="button"
+            class="secondary"
+            onclick="
+              event.preventDefault();
+              changerDemande(
+                ${d.id},
+                'En course'
+              )
+            "
+          >
+            ▶️ En course
+          </button>
+
+          `
+
+          :
+
+          ""
+
+        }
+
+
+        ${
+          d.statut!=="Terminée"
+          &&
+          d.statut!=="Annulée"
+
+          ?
+
+          `
+
+          <button
+            type="button"
+            class="secondary"
+            onclick="
+              event.preventDefault();
+              changerDemande(
+                ${d.id},
+                'Terminée'
+              )
+            "
+          >
+            ✅ Terminer
+          </button>
+
+          <button
+            type="button"
+            class="secondary"
+            onclick="
+              event.preventDefault();
+              changerDemande(
+                ${d.id},
+                'Annulée'
+              )
+            "
+          >
+            ❌ Annuler
+          </button>
+
+          `
+
+          :
+
+          ""
+
+        }
+
+        `
+
+        :
+
+        `
+
+        <br>
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="
+            event.preventDefault();
+            trouverConducteurProche(
+              ${d.id}
+            )
+          "
+        >
+          🎯 Chercher conducteur proche
+        </button>
+
+        `
+
+      }
+
+    </div>
+
+    `).join("");
+
+}
+
+
+/* =========================
+   ATTRIBUTION
+========================= */
+
+async function assigner(
+  demandeId,
+  conducteurId
+){
+
+  try{
+
+    const r=await fetch(
+      API+"/assigner",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:JSON.stringify({
+          demandeId,
+          conducteurId
+        })
+
+      }
+    );
+
+
+    const data=
+      await r.json();
+
+
+    if(!r.ok){
+
+      alert(
+        data.erreur||
+        "Attribution impossible."
+      );
+
+      return;
+
+    }
+
+
+    alert(
+      "🛺 Course attribuée à "+
+      data.conducteur.nom
+    );
+
+
+    actualiser();
+
+  }catch(e){
+
+    alert(
+      "Erreur lors de l'attribution."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   CONDUCTEUR PROCHE
+========================= */
+
+async function trouverConducteurProche(
+  demandeId
+){
+
+  try{
+
+    const r=await fetch(
+      API+
+      "/demandes/"+
+      demandeId+
+      "/conducteur-proche"
+    );
+
+
+    const data=
+      await r.json();
+
+
+    if(!r.ok){
+
+      alert(
+        data.erreur||
+        "Recherche impossible."
+      );
+
+      return;
+
+    }
+
+
+    if(!data.trouve){
+
+      alert(
+        "🟠 Aucun conducteur disponible avec GPS."
+      );
+
+      return;
+
+    }
+
+
+    const ok=confirm(
+
+      "🎯 Conducteur le plus proche :\n\n"+
+
+      data.conducteur.nom+
+
+      "\n📞 "+
+      data.conducteur.telephone+
+
+      "\n📍 À environ "+
+      data.distanceKm+
+      " km\n\n"+
+
+      "Voulez-vous lui attribuer cette course ?"
+
+    );
+
+
+    if(!ok){
+      return;
+    }
+
+
+    await assigner(
+      demandeId,
+      data.conducteur.id
+    );
+
+
+  }catch(e){
+
+    alert(
+      "Erreur pendant la recherche."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   CHANGEMENT STATUT
+========================= */
+
+async function changerDemande(
+  id,
+  statut
+){
+
+  try{
+
+    const r=await fetch(
+      API+"/demandes/"+id,
+      {
+        method:"PATCH",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:JSON.stringify({
+          statut
+        })
+
+      }
+    );
+
+
+    const data=
+      await r.json();
+
+
+    if(!r.ok){
+
+      alert(
+        data.erreur||
+        "Erreur"
+      );
+
+      return;
+
+    }
+
+
+    actualiser();
+
+  }catch(e){
+
+    alert(
+      "Erreur de mise à jour."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   INITIALISATION
+========================= */
+
+actualiser();
+
+setInterval(
+  actualiser,
+  5000
+);
+
+</script>
+
+</body>
+</html>
