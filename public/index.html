@@ -437,6 +437,21 @@ id="condZone"
 placeholder="Ex : Kalgondin">
 
 
+<label>Numéro CNIB / CNI</label>
+<input id="condCnib" placeholder="Ex : B12345678" autocomplete="off">
+
+<label>CNIB / CNI — Recto</label>
+<input id="condCnibRecto" type="file" accept="image/*" capture="environment">
+
+<label>CNIB / CNI — Verso</label>
+<input id="condCnibVerso" type="file" accept="image/*" capture="environment">
+
+<label>Numéro de plaque du tricycle</label>
+<input id="condPlaque" placeholder="Ex : 11 AB 1234" autocomplete="off">
+
+<label>Photo de la plaque</label>
+<input id="condPlaquePhoto" type="file" accept="image/*" capture="environment">
+
 <button
 class="gps"
 type="button"
@@ -1312,6 +1327,31 @@ async function ajouterConducteur(){
     document.getElementById(
       "condLng"
     ).value;
+
+  const cnib=
+    document.getElementById(
+      "condCnib"
+    ).value.trim();
+
+  const cnibRecto=
+    document.getElementById(
+      "condCnibRecto"
+    ).files[0];
+
+  const cnibVerso=
+    document.getElementById(
+      "condCnibVerso"
+    ).files[0];
+
+  const plaque=
+    document.getElementById(
+      "condPlaque"
+    ).value.trim();
+
+  const plaquePhoto=
+    document.getElementById(
+      "condPlaquePhoto"
+    ).files[0];
 
 
   if(!nom||!telephone){
