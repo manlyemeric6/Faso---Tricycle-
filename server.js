@@ -21,7 +21,7 @@ function envoyerCloudinary(buffer, folder) {
 
 const app = express();
 app.use(require("cors")({ origin: true }));
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const DATA = path.join(__dirname, "data");
 const DEMANDES = path.join(DATA, "demandes.json");
