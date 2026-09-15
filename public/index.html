@@ -575,6 +575,10 @@ Chiffre d'affaires terminé
 
 <h2>📋 Toutes les demandes</h2>
 
+<h2>🪪 Vérification des conducteurs</h2>
+<div id="adminConducteurs">Chargement...</div>
+<hr>
+
 <div id="adminDemandes">
 Chargement...
 </div>
@@ -1475,6 +1479,10 @@ async function actualiser(){
       conducteurs
     );
 
+    chargerConducteursAdmin(
+      conducteurs
+    );
+
     afficherCourses(
       demandes,
       conducteurs
@@ -1847,6 +1855,241 @@ function afficherCourses(
     </div>
 
     `).join("");
+
+}
+
+
+
+/* =========================
+   VERIFICATION CONDUCTEURS
+========================= */
+
+async function chargerConducteursAdmin(conducteurs){
+
+  const zone = document.getElementById("adminConducteurs");
+
+  if(!zone){
+    return;
+  }
+
+  zone.innerHTML = "Chargement des dossiers conducteurs...";
+
+  try{
+
+    if(!conducteurs || !Array.isArray(conducteurs)){
+      throw new Error(
+        "Liste des conducteurs indisponible."
+      );
+    }
+
+    if(!conducteurs.length){
+      zone.innerHTML =
+        "<p>Aucun dossier conducteur.</p>";
+      return;
+    }
+
+    zone.innerHTML = conducteurs.map(c => `
+
+      <div class="item">
+
+        <strong>🛺 ${c.nom}</strong>
+
+        <br>
+
+        📞 ${c.telephone}
+
+        <br>
+
+        📍 ${c.zone || "Zone non renseignée"}
+
+        <br>
+
+        🪪 CNIB/CNI :
+        ${c.cnib || "Non renseignée"}
+
+        <br>
+
+        🚘 Plaque :
+        ${c.numeroPlaque || "Non renseignée"}
+
+        <br>
+
+        📋 Vérification :
+        <span class="badge">
+          ${c.statutVerification || "En attente de vérification"}
+        </span>
+
+        <hr>
+
+        <strong>📸 Documents</strong>
+
+        <br><br>
+
+        <a
+          href="${c.cnibRectoUrl}"
+          target="_blank"
+          rel="noopener"
+        >
+          🪪 Voir CNIB/CNI — Recto
+        </a>
+
+        <br><br>
+
+        <a
+          href="${c.cnibVersoUrl}"
+          target="_blank"
+          rel="noopener"
+        >
+          🪪 Voir CNIB/CNI — Verso
+        </a>
+
+        <br><br>
+
+        <a
+          href="${c.plaquePhotoUrl}"
+          target="_blank"
+          rel="noopener"
+        >
+          🚘 Voir photo de la plaque
+        </a>
+
+        <br><br>
+
+        ${
+          c.statutVerification !== "Vérifié"
+          ?
+
+          `
+          <button
+            type="button"
+            class="secondary"
+            onclick="verifierConducteur(${c.id})"
+          >
+            ✅ Vérifier le conducteur
+          </button>
+          `
+
+          :
+
+          ""
+        }
+
+        ${
+          c.statutVerification !== "Refusé"
+          ?
+
+          `
+          <button
+            type="button"
+            class="secondary"
+            onclick="refuserConducteur(${c.id})"
+          >
+            ❌ Refuser le dossier
+          </button>
+          `
+
+          :
+
+          ""
+        }
+
+      </div>
+
+    `).join("");
+
+  }catch(error){
+
+    console.error(error);
+
+    zone.innerHTML =
+      "<p>❌ Impossible de charger les conducteurs.</p>";
+
+  }
+
+}
+
+
+async function changerVerificationConducteur(
+  id,
+  statutVerification
+){
+
+  try{
+
+    const r = await fetch(
+      API + "/conducteurs/" +
+      id +
+      "/verification",
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          statutVerification
+        })
+      }
+    );
+
+    const data = await r.json();
+
+    if(!r.ok){
+      throw new Error(
+        data.erreur ||
+        "Erreur lors de la vérification."
+      );
+    }
+
+    alert(data.message);
+
+    await actualiser();
+
+  }catch(error){
+
+    console.error(error);
+
+    alert(
+      error.message ||
+      "Impossible de modifier le statut."
+    );
+
+  }
+
+}
+
+
+function verifierConducteur(id){
+
+  if(
+    !confirm(
+      "Confirmer la vérification de ce conducteur ?"
+    )
+  ){
+    return;
+  }
+
+  changerVerificationConducteur(
+    id,
+    "Vérifié"
+  );
+
+}
+
+
+function refuserConducteur(id){
+
+  if(
+    !confirm(
+      "Confirmer le refus de ce dossier conducteur ?"
+    )
+  ){
+    return;
+  }
+
+  changerVerificationConducteur(
+    id,
+    "Refusé"
+  );
 
 }
 

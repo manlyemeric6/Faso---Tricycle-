@@ -454,6 +454,64 @@ app.post(
   }
 );;
 
+
+/* =========================
+   VERIFICATION CONDUCTEUR
+========================= */
+
+app.patch("/api/conducteurs/:id/verification", (req, res) => {
+
+  const id = Number(req.params.id);
+  const statutVerification = String(
+    req.body.statutVerification || ""
+  ).trim();
+
+  const statutsAutorises = [
+    "Vérifié",
+    "Refusé"
+  ];
+
+  if (!statutsAutorises.includes(statutVerification)) {
+    return res.status(400).json({
+      erreur: "Statut de vérification invalide."
+    });
+  }
+
+  const conducteurs = lire(CONDUCTEURS);
+
+  const index = conducteurs.findIndex(
+    c => Number(c.id) === id
+  );
+
+  if (index === -1) {
+    return res.status(404).json({
+      erreur: "Conducteur introuvable."
+    });
+  }
+
+  conducteurs[index].statutVerification =
+    statutVerification;
+
+  conducteurs[index].updatedAt = Date.now();
+
+  if (statutVerification === "Refusé") {
+    conducteurs[index].statut = "Indisponible";
+  }
+
+  ecrire(CONDUCTEURS, conducteurs);
+
+  res.json({
+    ok: true,
+    message:
+      statutVerification === "Vérifié"
+        ? "Conducteur vérifié avec succès."
+        : "Dossier conducteur refusé.",
+    conducteur: conducteurs[index]
+  });
+
+});
+
+
 /* =========================
    POSITION CONDUCTEUR
 ========================= */
