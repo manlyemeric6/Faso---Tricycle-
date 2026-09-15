@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+app.use(require("cors")({ origin: true }));
 const PORT = 3000;
 
 const DATA = path.join(__dirname, "data");
