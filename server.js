@@ -1,8 +1,23 @@
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const cloudinary = require("cloudinary").v2;
 cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+
+function envoyerCloudinary(buffer, folder) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+}
 
 const app = express();
 app.use(require("cors")({ origin: true }));
@@ -146,7 +161,7 @@ function conducteurLePlusProche(demande, conducteurs) {
   return disponibles.length ? disponibles[0] : null;
 }
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
@@ -317,67 +332,127 @@ app.get("/api/conducteurs", (req, res) => {
   res.json(lire(CONDUCTEURS));
 });
 
-app.post("/api/conducteurs", (req, res) => {
-  const {
-    nom,
-    telephone,
-    zone,
-    latitude = null,
-    longitude = null
-  } = req.body;
+app.post(
+  "/api/conducteurs",
+  upload.fields([
+    { name: "cnibRecto", maxCount: 1 },
+    { name: "cnibVerso", maxCount: 1 },
+    { name: "plaquePhoto", maxCount: 1 }
+  ]),
+  async (req, res) => {
 
-  if (!nom || !telephone) {
-    return res.status(400).json({
-      erreur: "Nom et téléphone obligatoires."
-    });
+    const {
+      nom,
+      telephone,
+      zone,
+      latitude = null,
+      longitude = null,
+      cnib,
+      plaque
+    } = req.body;
+
+    if (!nom || !telephone) {
+      return res.status(400).json({
+        erreur: "Nom et téléphone obligatoires."
+      });
+    }
+
+    if (!cnib || !plaque) {
+      return res.status(400).json({
+        erreur: "Numéro CNIB/CNI et numéro de plaque obligatoires."
+      });
+    }
+
+    const fichiers = req.files || {};
+
+    const cnibRecto = fichiers.cnibRecto?.[0];
+    const cnibVerso = fichiers.cnibVerso?.[0];
+    const plaquePhoto = fichiers.plaquePhoto?.[0];
+
+    if (!cnibRecto || !cnibVerso || !plaquePhoto) {
+      return res.status(400).json({
+        erreur: "Les photos CNIB/CNI recto, verso et plaque sont obligatoires."
+      });
+    }
+
+    const conducteurs = lire(CONDUCTEURS);
+    const tel = String(telephone).trim();
+
+    const existe = conducteurs.find(
+      c => String(c.telephone || "").trim() === tel
+    );
+
+    if (existe) {
+      return res.status(409).json({
+        erreur: "Ce numéro de téléphone est déjà enregistré comme conducteur.",
+        conducteur: existe
+      });
+    }
+
+    try {
+
+      const recto = await envoyerCloudinary(
+        cnibRecto.buffer,
+        "faso-tricycle/conducteurs"
+      );
+
+      const verso = await envoyerCloudinary(
+        cnibVerso.buffer,
+        "faso-tricycle/conducteurs"
+      );
+
+      const plaqueImage = await envoyerCloudinary(
+        plaquePhoto.buffer,
+        "faso-tricycle/conducteurs"
+      );
+
+      const gpsOK = coordonneeValide(latitude, longitude);
+
+      const conducteur = {
+        id: Date.now(),
+        nom: String(nom).trim(),
+        telephone: tel,
+        zone: String(zone || "").trim(),
+
+        cnib: String(cnib).trim(),
+        cnibRectoUrl: recto.secure_url,
+        cnibVersoUrl: verso.secure_url,
+
+        numeroPlaque: String(plaque).trim(),
+        plaquePhotoUrl: plaqueImage.secure_url,
+
+        latitude: gpsOK ? Number(latitude) : null,
+        longitude: gpsOK ? Number(longitude) : null,
+
+        statut: "Indisponible",
+        statutVerification: "En attente de vérification",
+
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      conducteurs.unshift(conducteur);
+      ecrire(CONDUCTEURS, conducteurs);
+
+      res.json({
+        ok: true,
+        message: "Dossier conducteur envoyé pour vérification.",
+        conducteur
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Erreur Cloudinary conducteur :",
+        error
+      );
+
+      res.status(500).json({
+        erreur: "Impossible d'envoyer les documents. Veuillez réessayer."
+      });
+    }
   }
-
-  const conducteurs = lire(CONDUCTEURS);
-
-  const tel = String(telephone).trim();
-
-  const existe = conducteurs.find(
-    c => String(c.telephone || "").trim() === tel
-  );
-
-  if (existe) {
-    return res.status(409).json({
-      erreur: "Ce numéro de téléphone est déjà enregistré comme conducteur.",
-      conducteur: existe
-    });
-  }
-
-  const gpsOK = coordonneeValide(latitude, longitude);
-
-  const conducteur = {
-    id: Date.now(),
-
-    nom: String(nom).trim(),
-
-    telephone: tel,
-
-    zone: String(zone || "").trim(),
-
-    latitude: gpsOK ? Number(latitude) : null,
-
-    longitude: gpsOK ? Number(longitude) : null,
-
-    statut: "Disponible",
-
-    createdAt: Date.now(),
-
-    updatedAt: Date.now()
-  };
-
-  conducteurs.unshift(conducteur);
-
-  ecrire(CONDUCTEURS, conducteurs);
-
-  res.json({
-    ok: true,
-    conducteur
-  });
-});
+);;
 
 /* =========================
    POSITION CONDUCTEUR

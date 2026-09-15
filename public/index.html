@@ -1303,170 +1303,127 @@ async function commander(){
 
 async function ajouterConducteur(){
 
-  const nom=
-    document.getElementById(
-      "condNom"
-    ).value.trim();
+  const nom =
+    document.getElementById("condNom").value.trim();
 
-  const telephone=
-    document.getElementById(
-      "condTel"
-    ).value.trim();
+  const telephone =
+    document.getElementById("condTel").value.trim();
 
-  const zone=
-    document.getElementById(
-      "condZone"
-    ).value.trim();
+  const zone =
+    document.getElementById("condZone").value.trim();
 
-  const latitude=
-    document.getElementById(
-      "condLat"
-    ).value;
+  const latitude =
+    document.getElementById("condLat").value;
 
-  const longitude=
-    document.getElementById(
-      "condLng"
-    ).value;
+  const longitude =
+    document.getElementById("condLng").value;
 
-  const cnib=
-    document.getElementById(
-      "condCnib"
-    ).value.trim();
+  const cnib =
+    document.getElementById("condCnib").value.trim();
 
-  const cnibRecto=
-    document.getElementById(
-      "condCnibRecto"
-    ).files[0];
+  const cnibRecto =
+    document.getElementById("condCnibRecto").files[0];
 
-  const cnibVerso=
-    document.getElementById(
-      "condCnibVerso"
-    ).files[0];
+  const cnibVerso =
+    document.getElementById("condCnibVerso").files[0];
 
-  const plaque=
-    document.getElementById(
-      "condPlaque"
-    ).value.trim();
+  const plaque =
+    document.getElementById("condPlaque").value.trim();
 
-  const plaquePhoto=
-    document.getElementById(
-      "condPlaquePhoto"
-    ).files[0];
+  const plaquePhoto =
+    document.getElementById("condPlaquePhoto").files[0];
 
-
-  if(!nom||!telephone){
-
-    alert(
-      "Nom et téléphone obligatoires."
-    );
-
+  if(!nom || !telephone){
+    alert("Nom et téléphone obligatoires.");
     return;
-
   }
 
+  if(!cnib || !plaque){
+    alert("Numéro CNIB/CNI et numéro de plaque obligatoires.");
+    return;
+  }
+
+  if(!cnibRecto || !cnibVerso || !plaquePhoto){
+    alert("Veuillez ajouter les photos CNIB/CNI recto, verso et plaque.");
+    return;
+  }
 
   try{
 
-    const r=await fetch(
-      API+"/conducteurs",
+    const formulaire = new FormData();
+
+    formulaire.append("nom", nom);
+    formulaire.append("telephone", telephone);
+    formulaire.append("zone", zone);
+    formulaire.append("latitude", latitude);
+    formulaire.append("longitude", longitude);
+    formulaire.append("cnib", cnib);
+    formulaire.append("plaque", plaque);
+
+    formulaire.append("cnibRecto", cnibRecto);
+    formulaire.append("cnibVerso", cnibVerso);
+    formulaire.append("plaquePhoto", plaquePhoto);
+
+    const r = await fetch(
+      API + "/conducteurs",
       {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:JSON.stringify({
-
-          nom,
-          telephone,
-          zone,
-          latitude,
-          longitude
-
-        })
-
+        method: "POST",
+        body: formulaire
       }
     );
 
-
-    const data=await r.json();
-
+    const data = await r.json();
 
     if(!r.ok){
-
       throw new Error(
-        data.erreur||
-        "Erreur"
+        data.erreur || "Erreur lors de l'enregistrement."
       );
-
     }
-
 
     document.getElementById(
       "messageConducteur"
-    ).innerHTML=`
-
-    <div class="item success">
-
-      ✅ Profil conducteur enregistré.
-
-      <br>
-
-      🛺 ${data.conducteur.nom}
-
-      <br>
-
-      📞 ${data.conducteur.telephone}
-
-      <br>
-
-      ${
-        data.conducteur.latitude
-        ?
-        "📍 GPS enregistré"
-        :
-        "📍 GPS non enregistré"
-      }
-
-    </div>
-
+    ).innerHTML = `
+      <div class="item success">
+        ✅ Dossier conducteur envoyé.
+        <br>
+        🛺 ${data.conducteur.nom}
+        <br>
+        📞 ${data.conducteur.telephone}
+        <br>
+        🪪 CNIB/CNI enregistrée
+        <br>
+        🚘 Plaque enregistrée
+        <br>
+        📋 En attente de vérification par l'administration.
+        <br>
+        ${
+          data.conducteur.latitude
+          ? "📍 GPS enregistré"
+          : "📍 GPS non enregistré"
+        }
+      </div>
     `;
 
+    document.getElementById("condNom").value = "";
+    document.getElementById("condTel").value = "";
+    document.getElementById("condZone").value = "";
+    document.getElementById("condLat").value = "";
+    document.getElementById("condLng").value = "";
+    document.getElementById("condCnib").value = "";
+    document.getElementById("condCnibRecto").value = "";
+    document.getElementById("condCnibVerso").value = "";
+    document.getElementById("condPlaque").value = "";
+    document.getElementById("condPlaquePhoto").value = "";
 
-    document.getElementById(
-      "condNom"
-    ).value="";
+  }catch(error){
 
-    document.getElementById(
-      "condTel"
-    ).value="";
-
-    document.getElementById(
-      "condZone"
-    ).value="";
-
-    document.getElementById(
-      "condLat"
-    ).value="";
-
-    document.getElementById(
-      "condLng"
-    ).value="";
-
-
-    actualiser();
-
-  }catch(e){
+    console.error(error);
 
     alert(
-      e.message||
-      "Erreur conducteur"
+      error.message ||
+      "Impossible d'enregistrer le dossier conducteur."
     );
-
   }
-
 }
 
 
