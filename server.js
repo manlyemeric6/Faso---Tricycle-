@@ -145,6 +145,7 @@ function conducteurLePlusProche(demande, conducteurs) {
   const disponibles = conducteurs
     .filter(c =>
       c.statut === "Disponible" &&
+      c.statutVerification === "Vérifié" &&
       coordonneeValide(c.latitude, c.longitude)
     )
     .map(c => ({
