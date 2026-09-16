@@ -1,3 +1,6 @@
+const { Pool } = require("pg");
+
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const cloudinary = require("cloudinary").v2;
@@ -22,6 +25,31 @@ function envoyerCloudinary(buffer, folder) {
 const app = express();
 app.use(require("cors")({ origin: true }));
 const PORT = process.env.PORT || 3000;
+
+async function initialiserPostgreSQL() {
+  if (!pool) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS conducteurs (
+      id BIGINT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS demandes (
+      id BIGINT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS utilisateurs (
+      id BIGINT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  console.log("PostgreSQL : tables prêtes.");
+}
 
 const DATA = path.join(__dirname, "data");
 const DEMANDES = path.join(DATA, "demandes.json");
@@ -881,12 +909,19 @@ app.use((req, res) => {
   );
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("=================================");
-  console.log(" Faso Tricycle V3 🇧🇫");
-  console.log(" Serveur démarré sur le port " + PORT);
-  console.log(" GPS : actif");
-  console.log(" Tarif automatique : actif");
-  console.log(" Recherche conducteur proche : active");
-  console.log("=================================");
-});
+initialiserPostgreSQL()
+  .then(() => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log("=================================");
+      console.log(" Faso Tricycle V3 🇧🇫");
+      console.log(" Serveur démarré sur le port " + PORT);
+      console.log(" GPS : actif");
+      console.log(" Tarif automatique : actif");
+      console.log(" Recherche conducteur proche : active");
+      console.log("=================================");
+    });
+  })
+  .catch((error) => {
+    console.error("Erreur PostgreSQL :", error.message);
+    process.exit(1);
+  });
