@@ -518,9 +518,48 @@ Chargement...
 
 <section id="admin" class="section">
 
+<div id="adminLogin" class="card">
+
+<h2>🔐 Connexion administrateur</h2>
+
+<p class="muted">
+Accès réservé à l'administration de Faso Tricycle.
+</p>
+
+<label>Code administrateur</label>
+
+<input
+  id="adminSecret"
+  type="password"
+  placeholder="Entrez le code administrateur"
+  autocomplete="off"
+>
+
+<button
+  type="button"
+  class="primary"
+  onclick="connecterAdmin()"
+>
+  🔐 Se connecter
+</button>
+
+<div id="adminLoginMessage"></div>
+
+</div>
+
+<div id="adminPanel" class="hidden">
+
 <div class="card">
 
 <h2>🛠️ Tableau de bord</h2>
+
+<button
+  type="button"
+  class="secondary"
+  onclick="deconnecterAdmin()"
+>
+  🚪 Déconnexion administrateur
+</button>
 
 <div class="stats">
 
@@ -581,6 +620,8 @@ Chiffre d'affaires terminé
 
 <div id="adminDemandes">
 Chargement...
+</div>
+
 </div>
 
 </div>
@@ -1435,14 +1476,109 @@ async function ajouterConducteur(){
    ACTUALISATION
 ========================= */
 
+let adminToken = sessionStorage.getItem("fasoTricycleAdminToken") || "";
+
+async function connecterAdmin(){
+
+  const secret = document.getElementById("adminSecret").value.trim();
+  const message = document.getElementById("adminLoginMessage");
+
+  if(!secret){
+    message.innerHTML = "<p class='muted'>Veuillez entrer le code administrateur.</p>";
+    return;
+  }
+
+  message.innerHTML = "<p>⏳ Connexion...</p>";
+
+  try{
+
+    const r = await fetch(
+      API + "/admin/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          secret
+        })
+      }
+    );
+
+    const data = await r.json();
+
+    if(!r.ok){
+      throw new Error(
+        data.erreur || "Connexion administrateur refusée."
+      );
+    }
+
+    adminToken = data.token;
+
+    sessionStorage.setItem(
+      "fasoTricycleAdminToken",
+      adminToken
+    );
+
+    document.getElementById("adminSecret").value = "";
+    document.getElementById("adminLogin").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+
+    message.innerHTML = "";
+
+    await actualiser();
+
+  }catch(error){
+
+    console.error(error);
+
+    message.innerHTML =
+      "<p class='muted'>❌ " +
+      (error.message || "Connexion impossible.") +
+      "</p>";
+
+  }
+
+}
+
+function deconnecterAdmin(){
+
+  adminToken = "";
+
+  sessionStorage.removeItem(
+    "fasoTricycleAdminToken"
+  );
+
+  document.getElementById("adminLogin").classList.remove("hidden");
+  document.getElementById("adminPanel").classList.add("hidden");
+
+  const message =
+    document.getElementById("adminLoginMessage");
+
+  if(message){
+    message.innerHTML =
+      "<p>👋 Session administrateur fermée.</p>";
+  }
+
+}
+
+function headersAdmin(){
+
+  return adminToken
+    ? {
+        "Authorization": "Bearer " + adminToken
+      }
+    : {};
+
+}
+
 async function actualiser(){
 
   try{
 
     const [
       dr,
-      cr,
-      da
+      cr
     ]=await Promise.all([
 
       fetch(
@@ -1451,10 +1587,6 @@ async function actualiser(){
 
       fetch(
         API+"/conducteurs"
-      ),
-
-      fetch(
-        API+"/dashboard"
       )
 
     ]);
@@ -1466,9 +1598,6 @@ async function actualiser(){
     const conducteurs=
       await cr.json();
 
-    const dashboard=
-      await da.json();
-
 
     afficherDemandes(
       demandes,
@@ -1476,10 +1605,6 @@ async function actualiser(){
     );
 
     afficherConducteurs(
-      conducteurs
-    );
-
-    chargerConducteursAdmin(
       conducteurs
     );
 
@@ -1491,6 +1616,36 @@ async function actualiser(){
     afficherAdmin(
       demandes
     );
+
+
+    if(adminToken){
+
+      const ar = await fetch(
+        API + "/admin/conducteurs",
+        {
+          headers: headersAdmin()
+        }
+      );
+
+      if(ar.status === 401){
+        deconnecterAdmin();
+        return;
+      }
+
+      if(!ar.ok){
+        throw new Error(
+          "Impossible de charger les dossiers administrateur."
+        );
+      }
+
+      const conducteursAdmin =
+        await ar.json();
+
+      chargerConducteursAdmin(
+        conducteursAdmin
+      );
+
+    }
 
 
     document.getElementById(
@@ -2023,7 +2178,8 @@ async function changerVerificationConducteur(
       {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...headersAdmin()
         },
         body: JSON.stringify({
           statutVerification
