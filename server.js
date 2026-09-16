@@ -24,6 +24,10 @@ function envoyerCloudinary(buffer, folder) {
 
 const app = express();
 app.use(require("cors")({ origin: true }));
+const crypto = require("crypto");
+
+const sessionsAdmin = new Map();
+
 const PORT = process.env.PORT || 3000;
 
 async function initialiserPostgreSQL() {
@@ -247,15 +251,44 @@ function conducteurLePlusProche(demande, conducteurs) {
 
 app.use(express.json({ limit: "10mb" }));
 
-function verifierAdmin(req, res, next) {
-  const secret = req.headers["x-admin-secret"];
+app.post("/api/admin/login", (req, res) => {
+  const secret = String(req.body.secret || "");
 
   if (
     !process.env.ADMIN_SECRET ||
     secret !== process.env.ADMIN_SECRET
   ) {
     return res.status(401).json({
-      erreur: "Accès administrateur refusé."
+      erreur: "Identifiants administrateur incorrects."
+    });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+
+  sessionsAdmin.set(token, {
+    createdAt: Date.now()
+  });
+
+  res.json({
+    ok: true,
+    token
+  });
+});
+
+function verifierAdmin(req, res, next) {
+  const authorization = String(
+    req.headers.authorization || ""
+  );
+
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+
+  const session = sessionsAdmin.get(token);
+
+  if (!session) {
+    return res.status(401).json({
+      erreur: "Session administrateur invalide ou expirée."
     });
   }
 
@@ -424,7 +457,26 @@ app.post("/api/calcul-tarif", (req, res) => {
    CONDUCTEURS
 ========================= */
 
-app.get("/api/conducteurs", verifierAdmin, async (req, res) => {
+app.get("/api/conducteurs", async (req, res) => {
+  const conducteurs = await lireConducteursDB();
+
+  const conducteursPublics = conducteurs.map(c => {
+    const {
+      cnibRectoUrl,
+      cnibVersoUrl,
+      plaquePhotoUrl,
+      cnib,
+      numeroPlaque,
+      ...publicData
+    } = c;
+
+    return publicData;
+  });
+
+  res.json(conducteursPublics);
+});
+
+app.get("/api/admin/conducteurs", verifierAdmin, async (req, res) => {
   res.json(await lireConducteursDB());
 });
 
