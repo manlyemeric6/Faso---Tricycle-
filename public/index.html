@@ -306,8 +306,6 @@ id="destinationLng"
 type="hidden">
 
 
-<label>Nom du client</label>
-
 <input
 id="clientNom"
 placeholder="Votre nom">
@@ -320,27 +318,19 @@ id="clientTel"
 placeholder="70 00 00 00"
 inputmode="tel">
 
+<label>Moyen de paiement</label>
 
-<label>Type de tarif</label>
+<select id="moyenPaiement">
+  <option value="especes">💵 Espèces</option>
+  <option value="orange_money">📱 Orange Money</option>
+  <option value="moov_money">📱 Moov Money</option>
+  <option value="carte">💳 Carte bancaire</option>
+</select>
 
+
+<label>Type de trajet</label>
 <select id="trajet">
-
-<option value="auto">
-🤖 Automatique selon distance
-</option>
-
-<option value="court">
-Court — 3 000 FCFA
-</option>
-
-<option value="moyen">
-Moyen — 5 000 FCFA
-</option>
-
-<option value="long">
-Long — 500 FCFA/km
-</option>
-
+<option value="auto">🤖 Automatique selon distance</option>
 </select>
 
 
@@ -785,55 +775,68 @@ async function localiserDepart(){
 
 async function localiserDestination(){
 
-  const zone=document.getElementById(
-    "gpsDestinationMessage"
-  );
+  const zone=document.getElementById("gpsDestinationMessage");
+  const destination=document.getElementById("destination").value.trim();
 
-  zone.textContent=
-    "📡 Recherche de la position...";
+  if(!destination){
+    zone.textContent="❌ Veuillez renseigner la destination.";
+    zone.className="small gps-no";
+    return;
+  }
+
+  zone.textContent="📡 Recherche de la destination...";
+  zone.className="small muted";
 
   try{
 
-    const p=await obtenirPosition();
+    const url="https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=bf&q="+encodeURIComponent(destination);
 
-    document.getElementById(
-      "destinationLat"
-    ).value=p.latitude;
+    const reponse=await fetch(url,{
+      headers:{
+        "Accept":"application/json"
+      }
+    });
 
-    document.getElementById(
-      "destinationLng"
-    ).value=p.longitude;
-
-    zone.innerHTML=
-      "✅ Position de destination enregistrée.";
-
-    zone.className="small gps-ok";
-
-    if(
-      !document.getElementById(
-        "destination"
-      ).value.trim()
-    ){
-
-      document.getElementById(
-        "destination"
-      ).value=
-        "Destination GPS";
-
+    if(!reponse.ok){
+      throw new Error("Service de localisation indisponible.");
     }
+
+    const resultats=await reponse.json();
+
+    if(!resultats.length){
+      throw new Error("Destination introuvable. Essayez un nom plus précis.");
+    }
+
+    const lieu=resultats[0];
+
+    const lat=Number(lieu.lat);
+    const lng=Number(lieu.lon);
+
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)){
+      throw new Error("Coordonnées de destination invalides.");
+    }
+
+    document.getElementById("destinationLat").value=lat;
+    document.getElementById("destinationLng").value=lng;
+
+    zone.innerHTML="✅ Destination trouvée : <strong>"+(lieu.display_name||destination)+"</strong>";
+    zone.className="small gps-ok";
 
     actualiserTarifLocal();
 
   }catch(e){
 
     zone.textContent="❌ "+e.message;
-
     zone.className="small gps-no";
+
+    document.getElementById("destinationLat").value="";
+    document.getElementById("destinationLng").value="";
+
+    actualiserTarifLocal();
 
   }
 
 }
-
 
 /* =========================
    GPS CONDUCTEUR
@@ -946,7 +949,6 @@ function actualiserTarifLocal(){
   const lng2=Number(
     document.getElementById("destinationLng").value
   );
-
   if(
     !Number.isFinite(lat1)||
     !Number.isFinite(lng1)||
@@ -1115,6 +1117,11 @@ async function commander(){
       "clientTel"
     ).value.trim();
 
+  const moyenPaiement=
+    document.getElementById(
+      "moyenPaiement"
+    ).value;
+
   const trajet=
     document.getElementById(
       "trajet"
@@ -1139,6 +1146,21 @@ async function commander(){
     document.getElementById(
       "destinationLng"
     ).value;
+
+  const departLatNum=Number(departLat);
+  const departLngNum=Number(departLng);
+  const destinationLatNum=Number(destinationLat);
+  const destinationLngNum=Number(destinationLng);
+
+  if(
+    !Number.isFinite(departLatNum) ||
+    !Number.isFinite(departLngNum) ||
+    !Number.isFinite(destinationLatNum) ||
+    !Number.isFinite(destinationLngNum)
+  ){
+    alert("📍 Veuillez enregistrer la position GPS du départ et de la destination avant de commander.");
+    return;
+  }
 
 
   if(!depart||!destination){
@@ -1189,11 +1211,13 @@ async function commander(){
 
           trajet,
 
-          departLat,
-          departLng,
+          moyenPaiement,
 
-          destinationLat,
-          destinationLng
+          departLat: departLatNum,
+          departLng: departLngNum,
+
+          destinationLat: destinationLatNum,
+          destinationLng: destinationLngNum
 
         })
 
@@ -1242,12 +1266,29 @@ async function commander(){
 
       <br>
 
-      💰 Tarif estimé :
+      💰 Tarif de base :
+      <strong>${Number(data.demande.tarif || 0).toLocaleString()} FCFA</strong>
+      <br>
+
+      ➕ Frais de service (5 %) :
+      <strong>${Math.round(Number(data.demande.tarif || 0) * 0.05).toLocaleString()} FCFA</strong>
+      <br>
+
+      💳 Total à payer :
+      <strong>${Math.round(Number(data.demande.tarif || 0) * 1.05).toLocaleString()} FCFA</strong>
+      <br>
+
+      📱 Moyen de paiement :
       <strong>
-        ${Number(
-          data.demande.tarif
-        ).toLocaleString()}
-        FCFA
+        ${
+          data.demande.moyenPaiement === "orange_money"
+            ? "Orange Money"
+            : data.demande.moyenPaiement === "moov_money"
+            ? "Moov Money"
+            : data.demande.moyenPaiement === "carte"
+            ? "Carte bancaire"
+            : "Espèces"
+        }
       </strong>
 
       <br>

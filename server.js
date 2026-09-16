@@ -316,7 +316,8 @@ app.post("/api/demandes", async (req, res) => {
     departLat = null,
     departLng = null,
     destinationLat = null,
-    destinationLng = null
+    destinationLng = null,
+    moyenPaiement = "especes"
   } = req.body;
 
   if (!depart || !destination) {
@@ -325,17 +326,24 @@ app.post("/api/demandes", async (req, res) => {
     });
   }
 
+  const moyensPaiementAutorises = [
+    "especes",
+    "orange_money",
+    "moov_money",
+    "carte"
+  ];
+
+  const paiementChoisi = moyensPaiementAutorises.includes(
+    String(moyenPaiement)
+  )
+    ? String(moyenPaiement)
+    : "especes";
+
   let distance = Number(kilometres) || 0;
 
   if (
-    coordonneeValide(
-      departLat,
-      departLng
-    ) &&
-    coordonneeValide(
-      destinationLat,
-      destinationLng
-    )
+    coordonneeValide(departLat, departLng) &&
+    coordonneeValide(destinationLat, destinationLng)
   ) {
     distance = distanceKm(
       departLat,
@@ -353,8 +361,23 @@ app.post("/api/demandes", async (req, res) => {
     tarif = calculerTarif(trajet, distance);
   }
 
+  tarif = Number(tarif) || 0;
+
+  /* =========================
+     FINANCES FASO TRICYCLE
+     ========================= */
+
+  const fraisClient = Math.round(tarif * 0.05);
+
+  const totalClient = tarif + fraisClient;
+
+  const commissionFasoTricycle = Math.round(tarif * 0.10);
+
+  const revenuConducteur = tarif - commissionFasoTricycle;
+
   const demande = {
     id: Date.now(),
+
     depart: String(depart).trim(),
     destination: String(destination).trim(),
 
@@ -384,11 +407,26 @@ app.post("/api/demandes", async (req, res) => {
       ? Number(destinationLng)
       : null,
 
+    /* Tarif avant frais */
     tarif,
+
+    /* Frais supplémentaires payés par le client */
+    fraisClient,
+
+    /* Total réellement payé par le client */
+    totalClient,
+
+    /* Commission Faso Tricycle */
+    commissionFasoTricycle,
+
+    /* Montant revenant au conducteur */
+    revenuConducteur,
 
     client: String(client || "Client").trim(),
 
     telephone: String(telephone || "").trim(),
+
+    moyenPaiement: paiementChoisi,
 
     date: maintenant(),
 
@@ -409,375 +447,15 @@ app.post("/api/demandes", async (req, res) => {
     updatedAt: Date.now()
   };
 
-  await enregistrerDemandeDB(demande);
+  const demandes = await lireDemandesDB();
+
+  demandes.push(demande);
+
+  ecrire(DEMANDES, demandes);
 
   res.json({
     ok: true,
     demande
-  });
-});
-
-/* =========================
-   CALCUL TARIF
-========================= */
-
-app.post("/api/calcul-tarif", (req, res) => {
-  const {
-    departLat,
-    departLng,
-    destinationLat,
-    destinationLng
-  } = req.body;
-
-  if (
-    !coordonneeValide(departLat, departLng) ||
-    !coordonneeValide(destinationLat, destinationLng)
-  ) {
-    return res.status(400).json({
-      erreur: "Coordonnées GPS invalides."
-    });
-  }
-
-  const distance = distanceKm(
-    departLat,
-    departLng,
-    destinationLat,
-    destinationLng
-  );
-
-  res.json({
-    ok: true,
-    distanceKm: Number(distance.toFixed(2)),
-    tarif: tarifAutomatique(distance),
-    typeDistance: "à vol d’oiseau"
-  });
-});
-
-/* =========================
-   CONDUCTEURS
-========================= */
-
-app.get("/api/conducteurs", async (req, res) => {
-  const conducteurs = await lireConducteursDB();
-
-  const conducteursPublics = conducteurs.map(c => {
-    const {
-      cnibRectoUrl,
-      cnibVersoUrl,
-      plaquePhotoUrl,
-      cnib,
-      numeroPlaque,
-      ...publicData
-    } = c;
-
-    return publicData;
-  });
-
-  res.json(conducteursPublics);
-});
-
-app.get("/api/admin/conducteurs", verifierAdmin, async (req, res) => {
-  res.json(await lireConducteursDB());
-});
-
-app.post(
-  "/api/conducteurs",
-  upload.fields([
-    { name: "cnibRecto", maxCount: 1 },
-    { name: "cnibVerso", maxCount: 1 },
-    { name: "plaquePhoto", maxCount: 1 }
-  ]),
-  async (req, res) => {
-
-    const {
-      nom,
-      telephone,
-      zone,
-      latitude = null,
-      longitude = null,
-      cnib,
-      plaque
-    } = req.body;
-
-    if (!nom || !telephone) {
-      return res.status(400).json({
-        erreur: "Nom et téléphone obligatoires."
-      });
-    }
-
-    if (!cnib || !plaque) {
-      return res.status(400).json({
-        erreur: "Numéro CNIB/CNI et numéro de plaque obligatoires."
-      });
-    }
-
-    const fichiers = req.files || {};
-
-    const cnibRecto = fichiers.cnibRecto?.[0];
-    const cnibVerso = fichiers.cnibVerso?.[0];
-    const plaquePhoto = fichiers.plaquePhoto?.[0];
-
-    if (!cnibRecto || !cnibVerso || !plaquePhoto) {
-      return res.status(400).json({
-        erreur: "Les photos CNIB/CNI recto, verso et plaque sont obligatoires."
-      });
-    }
-
-    const conducteurs = await lireConducteursDB();
-    const tel = String(telephone).trim();
-
-    const existe = conducteurs.find(
-      c => String(c.telephone || "").trim() === tel
-    );
-
-    if (existe) {
-      return res.status(409).json({
-        erreur: "Ce numéro de téléphone est déjà enregistré comme conducteur.",
-        conducteur: existe
-      });
-    }
-
-    try {
-
-      const recto = await envoyerCloudinary(
-        cnibRecto.buffer,
-        "faso-tricycle/conducteurs"
-      );
-
-      const verso = await envoyerCloudinary(
-        cnibVerso.buffer,
-        "faso-tricycle/conducteurs"
-      );
-
-      const plaqueImage = await envoyerCloudinary(
-        plaquePhoto.buffer,
-        "faso-tricycle/conducteurs"
-      );
-
-      const gpsOK = coordonneeValide(latitude, longitude);
-
-      const conducteur = {
-        id: Date.now(),
-        nom: String(nom).trim(),
-        telephone: tel,
-        zone: String(zone || "").trim(),
-
-        cnib: String(cnib).trim(),
-        cnibRectoUrl: recto.secure_url,
-        cnibVersoUrl: verso.secure_url,
-
-        numeroPlaque: String(plaque).trim(),
-        plaquePhotoUrl: plaqueImage.secure_url,
-
-        latitude: gpsOK ? Number(latitude) : null,
-        longitude: gpsOK ? Number(longitude) : null,
-
-        statut: "Indisponible",
-        statutVerification: "En attente de vérification",
-
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-
-      await enregistrerConducteurDB(conducteur);
-
-      res.json({
-        ok: true,
-        message: "Dossier conducteur envoyé pour vérification.",
-        conducteur
-      });
-
-    } catch (error) {
-
-      console.error(
-        "Erreur Cloudinary conducteur :",
-        error
-      );
-
-      res.status(500).json({
-        erreur: "Impossible d'envoyer les documents. Veuillez réessayer."
-      });
-    }
-  }
-);;
-
-
-/* =========================
-   VERIFICATION CONDUCTEUR
-========================= */
-
-app.patch("/api/conducteurs/:id/verification", verifierAdmin, async (req, res) => {
-
-  const id = Number(req.params.id);
-  const statutVerification = String(
-    req.body.statutVerification || ""
-  ).trim();
-
-  const statutsAutorises = [
-    "Vérifié",
-    "Refusé"
-  ];
-
-  if (!statutsAutorises.includes(statutVerification)) {
-    return res.status(400).json({
-      erreur: "Statut de vérification invalide."
-    });
-  }
-
-  const conducteurs = await lireConducteursDB();
-
-  const index = conducteurs.findIndex(
-    c => Number(c.id) === id
-  );
-
-  if (index === -1) {
-    return res.status(404).json({
-      erreur: "Conducteur introuvable."
-    });
-  }
-
-  conducteurs[index].statutVerification =
-    statutVerification;
-
-  conducteurs[index].updatedAt = Date.now();
-
-  if (statutVerification === "Refusé") {
-    conducteurs[index].statut = "Indisponible";
-  }
-
-  await enregistrerConducteurDB(conducteurs[index]);
-
-  res.json({
-    ok: true,
-    message:
-      statutVerification === "Vérifié"
-        ? "Conducteur vérifié avec succès."
-        : "Dossier conducteur refusé.",
-    conducteur: conducteurs[index]
-  });
-
-});
-
-
-/* =========================
-   POSITION CONDUCTEUR
-========================= */
-
-app.patch("/api/conducteurs/:id/position", async (req, res) => {
-  const id = Number(req.params.id);
-
-  const {
-    latitude,
-    longitude
-  } = req.body;
-
-  if (!coordonneeValide(latitude, longitude)) {
-    return res.status(400).json({
-      erreur: "Coordonnées GPS invalides."
-    });
-  }
-
-  const conducteurs = await lireConducteursDB();
-
-  const conducteur = conducteurs.find(
-    c => Number(c.id) === id
-  );
-
-  if (!conducteur) {
-    return res.status(404).json({
-      erreur: "Conducteur introuvable."
-    });
-  }
-
-  conducteur.latitude = Number(latitude);
-  conducteur.longitude = Number(longitude);
-  conducteur.updatedAt = Date.now();
-
-  await enregistrerConducteurDB(conducteur);
-
-  res.json({
-    ok: true,
-    conducteur
-  });
-});
-
-/* =========================
-   ATTRIBUTION MANUELLE
-========================= */
-
-app.post("/api/assigner", async (req, res) => {
-  const demandeId = Number(req.body.demandeId);
-  const conducteurId = Number(req.body.conducteurId);
-
-  const demandes = await lireDemandesDB();
-  const conducteurs = await lireConducteursDB();
-
-  const demande = demandes.find(
-    d => Number(d.id) === demandeId
-  );
-
-  const conducteur = conducteurs.find(
-    c => Number(c.id) === conducteurId
-  );
-
-  if (!demande) {
-    return res.status(404).json({
-      erreur: "Demande introuvable."
-    });
-  }
-
-  if (!conducteur) {
-    return res.status(404).json({
-      erreur: "Conducteur introuvable."
-    });
-  }
-
-  if (
-    conducteur.statut !== "Disponible" ||
-    conducteur.statutVerification !== "Vérifié"
-  ) {
-    return res.status(400).json({
-      erreur: "Ce conducteur n'est plus disponible."
-    });
-  }
-
-  demande.conducteurId = conducteur.id;
-  demande.conducteur = conducteur.nom;
-  demande.telephoneConducteur = conducteur.telephone;
-  demande.statut = "Conducteur attribué";
-
-  if (
-    coordonneeValide(
-      demande.departLat,
-      demande.departLng
-    ) &&
-    coordonneeValide(
-      conducteur.latitude,
-      conducteur.longitude
-    )
-  ) {
-    demande.distanceConducteur = Number(
-      distanceKm(
-        demande.departLat,
-        demande.departLng,
-        conducteur.latitude,
-        conducteur.longitude
-      ).toFixed(2)
-    );
-  }
-
-  demande.updatedAt = Date.now();
-
-  conducteur.statut = "En course";
-  conducteur.updatedAt = Date.now();
-
-  await enregistrerDemandeDB(demande);
-  await enregistrerConducteurDB(conducteur);
-
-  res.json({
-    ok: true,
-    demande,
-    conducteur
   });
 });
 
