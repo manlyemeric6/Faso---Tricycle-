@@ -95,12 +95,11 @@ async function lireConducteursDB() {
 
 async function enregistrerConducteurDB(conducteur) {
   if (!pool) {
-    const conducteurs = await lireConducteursDB();
-    conducteurs.unshift(conducteur);
+    const conducteurs = lire(CONDUCTEURS);
     conducteurs.unshift(conducteur);
     ecrire(CONDUCTEURS, conducteurs);
+    return;
   }
-
   await pool.query(
     `INSERT INTO conducteurs (id, data, created_at, updated_at)
      VALUES ($1, $2::jsonb, NOW(), NOW())
