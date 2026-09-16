@@ -115,6 +115,33 @@ function maintenant() {
   });
 }
 
+async function lireDemandesDB() {
+  if (!pool) return lire(DEMANDES);
+
+  const result = await pool.query(
+    "SELECT data FROM demandes ORDER BY created_at DESC"
+  );
+
+  return result.rows.map(row => row.data);
+}
+
+async function enregistrerDemandeDB(demande) {
+  if (!pool) {
+    const demandes = lire(DEMANDES);
+    demandes.unshift(demande);
+    ecrire(DEMANDES, demandes);
+    return;
+  }
+
+  await pool.query(
+    `INSERT INTO demandes (id, data, created_at, updated_at)
+     VALUES ($1, $2::jsonb, NOW(), NOW())
+     ON CONFLICT (id)
+     DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+    [demande.id, JSON.stringify(demande)]
+  );
+}
+
 function nombreValide(value) {
   const n = Number(value);
   return Number.isFinite(n);
@@ -224,11 +251,11 @@ app.use(express.static(path.join(__dirname, "public")));
    DEMANDES
 ========================= */
 
-app.get("/api/demandes", (req, res) => {
-  res.json(lire(DEMANDES));
+app.get("/api/demandes", async (req, res) => {
+  res.json(await lireDemandesDB());
 });
 
-app.post("/api/demandes", (req, res) => {
+app.post("/api/demandes", async (req, res) => {
   const {
     depart,
     destination,
@@ -332,11 +359,7 @@ app.post("/api/demandes", (req, res) => {
     updatedAt: Date.now()
   };
 
-  const demandes = lire(DEMANDES);
-
-  demandes.unshift(demande);
-
-  ecrire(DEMANDES, demandes);
+  await enregistrerDemandeDB(demande);
 
   res.json({
     ok: true,
@@ -617,7 +640,7 @@ app.post("/api/assigner", async (req, res) => {
   const demandeId = Number(req.body.demandeId);
   const conducteurId = Number(req.body.conducteurId);
 
-  const demandes = lire(DEMANDES);
+  const demandes = await lireDemandesDB();
   const conducteurs = await lireConducteursDB();
 
   const demande = demandes.find(
@@ -640,8 +663,10 @@ app.post("/api/assigner", async (req, res) => {
     });
   }
 
-  if (conducteur.statut !== "Disponible" || conducteur.statutVerification !== "Vérifié") {
-  
+  if (
+    conducteur.statut !== "Disponible" ||
+    conducteur.statutVerification !== "Vérifié"
+  ) {
     return res.status(400).json({
       erreur: "Ce conducteur n'est plus disponible."
     });
@@ -677,6 +702,7 @@ app.post("/api/assigner", async (req, res) => {
   conducteur.statut = "En course";
   conducteur.updatedAt = Date.now();
 
+  await enregistrerDemandeDB(demande);
   await enregistrerConducteurDB(conducteur);
 
   res.json({
@@ -693,12 +719,9 @@ app.post("/api/assigner", async (req, res) => {
 app.get("/api/demandes/:id/conducteur-proche", async (req, res) => {
   const id = Number(req.params.id);
 
-  const demandes = lire(DEMANDES);
+  const demandes = await lireDemandesDB();
   const conducteurs = await lireConducteursDB();
-
-  const demande = demandes.find(
-    d => Number(d.id) === id
-  );
+  const demande = demandes.find(d => Number(d.id) === id);
 
   if (!demande) {
     return res.status(404).json({
@@ -734,12 +757,9 @@ app.get("/api/demandes/:id/conducteur-proche", async (req, res) => {
 app.post("/api/assigner-automatique", async (req, res) => {
   const demandeId = Number(req.body.demandeId);
 
-  const demandes = lire(DEMANDES);
+  const demandes = await lireDemandesDB();
   const conducteurs = await lireConducteursDB();
-
-  const demande = demandes.find(
-    d => Number(d.id) === demandeId
-  );
+  const demande = demandes.find(d => Number(d.id) === demandeId);
 
   if (!demande) {
     return res.status(404).json({
@@ -810,12 +830,9 @@ app.patch("/api/demandes/:id", async (req, res) => {
     });
   }
 
-  const demandes = lire(DEMANDES);
+  const demandes = await lireDemandesDB();
   const conducteurs = await lireConducteursDB();
-
-  const demande = demandes.find(
-    d => Number(d.id) === id
-  );
+  const demande = demandes.find(d => Number(d.id) === id);
 
   if (!demande) {
     return res.status(404).json({
@@ -868,11 +885,10 @@ app.patch("/api/demandes/:id", async (req, res) => {
 ========================= */
 
 app.get("/api/dashboard", async (req, res) => {
-  const demandes = lire(DEMANDES);
+  const demandes = await lireDemandesDB();
   const conducteurs = await lireConducteursDB();
 
   const chiffreAffaires = demandes
-    .filter(d => d.statut === "Terminée")
     .reduce(
       (total, d) =>
         total + Number(d.tarif || 0),
