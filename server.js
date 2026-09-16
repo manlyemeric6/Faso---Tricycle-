@@ -244,7 +244,24 @@ function conducteurLePlusProche(demande, conducteurs) {
   return disponibles.length ? disponibles[0] : null;
 }
 
+
 app.use(express.json({ limit: "10mb" }));
+
+function verifierAdmin(req, res, next) {
+  const secret = req.headers["x-admin-secret"];
+
+  if (
+    !process.env.ADMIN_SECRET ||
+    secret !== process.env.ADMIN_SECRET
+  ) {
+    return res.status(401).json({
+      erreur: "Accès administrateur refusé."
+    });
+  }
+
+  next();
+}
+
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
@@ -537,7 +554,7 @@ app.post(
    VERIFICATION CONDUCTEUR
 ========================= */
 
-app.patch("/api/conducteurs/:id/verification", async (req, res) => {
+app.patch("/api/conducteurs/:id/verification", verifierAdmin, async (req, res) => {
 
   const id = Number(req.params.id);
   const statutVerification = String(
