@@ -693,7 +693,7 @@ app.patch("/api/conducteurs/:id/position", async (req, res) => {
   conducteur.longitude = Number(longitude);
   conducteur.updatedAt = Date.now();
 
-  enregistrerConducteurDB(conducteur);
+  await enregistrerConducteurDB(conducteur);
 
   res.json({
     ok: true,
