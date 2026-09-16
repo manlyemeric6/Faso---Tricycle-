@@ -424,7 +424,7 @@ app.post("/api/calcul-tarif", (req, res) => {
    CONDUCTEURS
 ========================= */
 
-app.get("/api/conducteurs", async (req, res) => {
+app.get("/api/conducteurs", verifierAdmin, async (req, res) => {
   res.json(await lireConducteursDB());
 });
 
