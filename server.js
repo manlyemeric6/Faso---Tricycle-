@@ -297,6 +297,16 @@ function verifierAdmin(req, res, next) {
 
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/api/conducteurs", async (req, res) => {
+  try {
+    const conducteurs = await lireConducteursDB();
+    res.json({ ok: true, conducteurs });
+  } catch (error) {
+    console.error("Erreur lecture conducteurs :", error);
+    res.status(500).json({ ok: false, erreur: "Erreur lors de la lecture des conducteurs." });
+  }
+});
+
 /* =========================
    DEMANDES
 ========================= */
@@ -362,6 +372,7 @@ app.post("/api/demandes", async (req, res) => {
   }
 
   tarif = Number(tarif) || 0;
+
 
   /* =========================
      FINANCES FASO TRICYCLE
@@ -459,6 +470,137 @@ app.post("/api/demandes", async (req, res) => {
   });
 });
 
+
+
+/* =========================
+   INSCRIPTION CONDUCTEUR
+========================= */
+
+app.post(
+  "/api/conducteurs",
+  upload.fields([
+    { name: "cnibRecto", maxCount: 1 },
+    { name: "cnibVerso", maxCount: 1 },
+    { name: "plaquePhoto", maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+      const {
+        nom,
+        telephone,
+        zone,
+        latitude,
+        longitude,
+        cnib,
+        plaque
+      } = req.body;
+
+      if (!nom || !telephone) {
+        return res.status(400).json({
+          ok: false,
+          erreur: "Nom et téléphone obligatoires."
+        });
+      }
+
+      const lat = Number(latitude);
+      const lng = Number(longitude);
+
+      const gpsValide = coordonneeValide(lat, lng);
+
+      const fichiers = req.files || {};
+
+      let cnibRecto = null;
+      let cnibVerso = null;
+      let plaquePhoto = null;
+
+      if (fichiers.cnibRecto && fichiers.cnibRecto[0]) {
+        try {
+          const result = await envoyerCloudinary(
+            fichiers.cnibRecto[0].buffer,
+            "faso-tricycle/conducteurs/cnib"
+          );
+          cnibRecto = result.secure_url;
+        } catch (e) {
+          console.log("Cloudinary CNIB recto :", e.message);
+        }
+      }
+
+      if (fichiers.cnibVerso && fichiers.cnibVerso[0]) {
+        try {
+          const result = await envoyerCloudinary(
+            fichiers.cnibVerso[0].buffer,
+            "faso-tricycle/conducteurs/cnib"
+          );
+          cnibVerso = result.secure_url;
+        } catch (e) {
+          console.log("Cloudinary CNIB verso :", e.message);
+        }
+      }
+
+      if (fichiers.plaquePhoto && fichiers.plaquePhoto[0]) {
+        try {
+          const result = await envoyerCloudinary(
+            fichiers.plaquePhoto[0].buffer,
+            "faso-tricycle/conducteurs/plaque"
+          );
+          plaquePhoto = result.secure_url;
+        } catch (e) {
+          console.log("Cloudinary plaque :", e.message);
+        }
+      }
+
+      const maintenantTimestamp = Date.now();
+
+      const conducteur = {
+        id: maintenantTimestamp,
+        nom: String(nom).trim(),
+        telephone: String(telephone).trim(),
+        zone: String(zone || "").trim(),
+
+        latitude: gpsValide ? lat : null,
+        longitude: gpsValide ? lng : null,
+
+        cnib: String(cnib || "").trim(),
+        plaque: String(plaque || "").trim(),
+
+        cnibRecto,
+        cnibVerso,
+        plaquePhoto,
+
+        statut: "Disponible",
+        statutVerification: "Vérifié",
+
+        createdAt: maintenantTimestamp,
+        updatedAt: maintenantTimestamp
+      };
+
+      await enregistrerConducteurDB(conducteur);
+
+      console.log(
+        "Conducteur enregistré :",
+        conducteur.nom,
+        conducteur.latitude,
+        conducteur.longitude
+      );
+
+      res.json({
+        ok: true,
+        message: "Conducteur enregistré avec succès.",
+        conducteur
+      });
+
+    } catch (error) {
+      console.error("Erreur inscription conducteur :", error);
+
+      res.status(500).json({
+        ok: false,
+        erreur: "Erreur lors de l'enregistrement du conducteur."
+      });
+    }
+  }
+);
+
+
 /* =========================
    CONDUCTEUR LE PLUS PROCHE
 ========================= */
@@ -496,6 +638,7 @@ app.get("/api/demandes/:id/conducteur-proche", async (req, res) => {
     distanceKm: Number(resultat.distance.toFixed(2))
   });
 });
+
 
 /* =========================
    ATTRIBUTION AUTOMATIQUE
@@ -553,6 +696,7 @@ app.post("/api/assigner-automatique", async (req, res) => {
     distanceKm: demande.distanceConducteur
   });
   });
+
 
 /* =========================
    STATUT COURSE
@@ -627,6 +771,7 @@ app.patch("/api/demandes/:id", async (req, res) => {
   });
 });
 
+
 /* =========================
    DASHBOARD
 ========================= */
@@ -667,6 +812,7 @@ app.get("/api/dashboard", async (req, res) => {
   });
 });
 
+
 /* =========================
    SANTÉ
 ========================= */
@@ -680,6 +826,7 @@ app.get("/api/sante", (req, res) => {
     heure: maintenant()
   });
 });
+
 
 /* =========================
    PAGE

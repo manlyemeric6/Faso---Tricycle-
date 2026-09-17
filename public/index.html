@@ -628,7 +628,11 @@ Faso Tricycle 🇧🇫 — Version V3
 
 <script>
 
-const API="https://faso-tricycle1.onrender.com/api";
+const API =
+  (location.hostname === "127.0.0.1" ||
+   location.hostname === "localhost")
+    ? "http://127.0.0.1:3000/api"
+    : "https://faso-tricycle1.onrender.com/api";
 
 let commandeEnCours=false;
 
@@ -1519,38 +1523,50 @@ async function ajouterConducteur(){
 
 let adminToken = sessionStorage.getItem("fasoTricycleAdminToken") || "";
 
-async function connecterAdmin(){
+async function connecterAdmin(event){
 
-  const secret = document.getElementById("adminSecret").value.trim();
-  const message = document.getElementById("adminLoginMessage");
+  if(event){
+    event.preventDefault();
+  }
+
+  const secret =
+    document.getElementById("adminSecret").value.trim();
+
+  const message =
+    document.getElementById("adminLoginMessage");
 
   if(!secret){
-    message.innerHTML = "<p class='muted'>Veuillez entrer le code administrateur.</p>";
+    message.innerHTML =
+      "<p class='muted'>Veuillez entrer le code administrateur.</p>";
     return;
   }
 
-  message.innerHTML = "<p>⏳ Connexion...</p>";
+  message.innerHTML =
+    "<p>⏳ Connexion...</p>";
 
   try{
 
     const r = await fetch(
       API + "/admin/login",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
         },
-        body: JSON.stringify({
-          secret
+        body:JSON.stringify({
+          secret:secret
         })
       }
     );
 
     const data = await r.json();
 
-    if(!r.ok){
+    console.log("Réponse admin :", data);
+
+    if(!r.ok || !data.ok){
       throw new Error(
-        data.erreur || "Connexion administrateur refusée."
+        data.erreur ||
+        "Connexion administrateur refusée."
       );
     }
 
@@ -1561,23 +1577,32 @@ async function connecterAdmin(){
       adminToken
     );
 
-    document.getElementById("adminSecret").value = "";
-    document.getElementById("adminLogin").classList.add("hidden");
-    document.getElementById("adminPanel").classList.remove("hidden");
+    document.getElementById(
+      "adminSecret"
+    ).value = "";
 
-    message.innerHTML = "";
+    document.getElementById(
+      "adminLogin"
+    ).classList.add("hidden");
 
-    await actualiser();
+    document.getElementById(
+      "adminPanel"
+    ).classList.remove("hidden");
+
+    message.innerHTML =
+      "<p>✅ Connexion réussie.</p>";
 
   }catch(error){
 
-    console.error(error);
+    console.error(
+      "Erreur connexion admin :",
+      error
+    );
 
     message.innerHTML =
       "<p class='muted'>❌ " +
-      (error.message || "Connexion impossible.") +
+      error.message +
       "</p>";
-
   }
 
 }
@@ -1620,25 +1645,42 @@ async function actualiser(){
     const [
       dr,
       cr
-    ]=await Promise.all([
+    ] = await Promise.all([
 
       fetch(
-        API+"/demandes"
+        API + "/demandes"
       ),
 
       fetch(
-        API+"/conducteurs"
+        API + "/conducteurs"
       )
 
     ]);
 
+    if(!dr.ok){
+      throw new Error(
+        "Erreur lecture des demandes : HTTP " + dr.status
+      );
+    }
 
-    const demandes=
+    if(!cr.ok){
+      throw new Error(
+        "Erreur lecture des conducteurs : HTTP " + cr.status
+      );
+    }
+
+    const demandes =
       await dr.json();
 
-    const conducteurs=
+    const reponseConducteurs =
       await cr.json();
 
+    const conducteurs =
+      Array.isArray(reponseConducteurs)
+        ? reponseConducteurs
+        : (Array.isArray(reponseConducteurs.conducteurs)
+            ? reponseConducteurs.conducteurs
+            : []);
 
     afficherDemandes(
       demandes,
@@ -1658,82 +1700,20 @@ async function actualiser(){
       demandes
     );
 
-
-    if(adminToken){
-
-      const ar = await fetch(
-        API + "/admin/conducteurs",
-        {
-          headers: headersAdmin()
-        }
-      );
-
-      if(ar.status === 401){
-        deconnecterAdmin();
-        return;
-      }
-
-      if(!ar.ok){
-        throw new Error(
-          "Impossible de charger les dossiers administrateur."
-        );
-      }
-
-      const conducteursAdmin =
-        await ar.json();
-
-      chargerConducteursAdmin(
-        conducteursAdmin
-      );
-
-    }
-
-
-    document.getElementById(
-      "statDemandes"
-    ).textContent=
-      dashboard.demandes;
-
-    document.getElementById(
-      "statConducteurs"
-    ).textContent=
-      dashboard.conducteurs;
-
-    document.getElementById(
-      "statDisponibles"
-    ).textContent=
-      dashboard.disponibles;
-
-    document.getElementById(
-      "statCourses"
-    ).textContent=
-      dashboard.courses;
-
-    document.getElementById(
-      "statTerminees"
-    ).textContent=
-      dashboard.terminees||0;
-
-    document.getElementById(
-      "statAnnulees"
-    ).textContent=
-      dashboard.annulees||0;
-
-    document.getElementById(
-      "statCA"
-    ).textContent=
-      Number(
-        dashboard.chiffreAffaires||0
-      ).toLocaleString()+
-      " FCFA";
-
-
-  }catch(e){
+  }catch(error){
 
     console.error(
-      "Actualisation:",
-      e
+      "Erreur actualisation :",
+      error
     );
+
+    const historique =
+      document.getElementById("historique");
+
+    if(historique){
+      historique.innerHTML =
+        "<p>❌ Impossible de charger les demandes.</p>";
+    }
 
   }
 
@@ -2530,55 +2510,49 @@ async function assigner(
 
   try{
 
-    const r=await fetch(
-      API+"/assigner",
+    const r = await fetch(
+      API + "/assigner-automatique",
       {
         method:"POST",
 
         headers:{
-          "Content-Type":
-            "application/json"
+          "Content-Type":"application/json"
         },
 
         body:JSON.stringify({
-          demandeId,
-          conducteurId
+          demandeId: Number(demandeId)
         })
-
       }
     );
 
+    const data = await r.json();
 
-    const data=
-      await r.json();
-
-
-    if(!r.ok){
-
-      alert(
-        data.erreur||
-        "Attribution impossible."
+    if(!r.ok || !data.ok){
+      throw new Error(
+        data.erreur || "Impossible d’attribuer le conducteur."
       );
-
-      return;
-
     }
 
-
     alert(
-      "🛺 Course attribuée à "+
-      data.conducteur.nom
+      "✅ Conducteur attribué : " +
+      data.conducteur.nom +
+      "\n📍 Distance : " +
+      data.distanceKm +
+      " km"
     );
 
+    if(typeof actualiser === "function"){
+      await actualiser();
+    }
 
-    actualiser();
+  }catch(error){
 
-  }catch(e){
+    console.error("Erreur attribution :", error);
 
     alert(
-      "Erreur lors de l'attribution."
+      "❌ Erreur lors de l'attribution : " +
+      error.message
     );
-
   }
 
 }
