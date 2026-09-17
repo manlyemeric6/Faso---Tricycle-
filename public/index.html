@@ -352,6 +352,12 @@ class="tarif">
 —
 </div>
 
+<div
+id="detailsTarif"
+class="small"
+style="margin-top:10px;line-height:1.7">
+</div>
+
 <div class="small muted">
 La distance GPS est calculée à vol d'oiseau.
 </div>
@@ -359,13 +365,7 @@ La distance GPS est calculée à vol d'oiseau.
 </div>
 
 
-<button
-id="btnCalculer"
-class="secondary"
-type="button"
-onclick="calculerTarif()">
-💰 Calculer le tarif
-</button>
+
 
 
 <button
@@ -993,6 +993,29 @@ function actualiserTarifLocal(){
   ).textContent=
     tarif.toLocaleString()+" FCFA";
 
+  const fraisClient=Math.round(tarif*0.05);
+  const totalClient=tarif+fraisClient;
+  const commission=Math.round(tarif*0.10);
+  const revenuConducteur=tarif-commission;
+
+  const details=document.getElementById("detailsTarif");
+
+  if(details){
+    details.innerHTML=
+      "💳 Frais client (5 %) : <strong>"+
+      fraisClient.toLocaleString()+
+      " FCFA</strong><br>"+
+      "🛺 Total client : <strong>"+
+      totalClient.toLocaleString()+
+      " FCFA</strong><br>"+
+      "🤝 Commission Faso Tricycle (10 %) : <strong>"+
+      commission.toLocaleString()+
+      " FCFA</strong><br>"+
+      "👨🏾‍✈️ Revenu conducteur : <strong>"+
+      revenuConducteur.toLocaleString()+
+      " FCFA</strong>";
+  }
+
 }
 
 
@@ -1080,6 +1103,24 @@ async function calculerTarif(){
       Number(data.tarif)
       .toLocaleString()+
       " FCFA";
+
+    const details=document.getElementById("detailsTarif");
+
+    if(details){
+      details.innerHTML=
+        "💳 Frais client (5 %) : <strong>"+
+        Number(data.fraisClient || 0).toLocaleString()+
+        " FCFA</strong><br>"+
+        "🛺 Total client : <strong>"+
+        Number(data.totalClient || data.tarif || 0).toLocaleString()+
+        " FCFA</strong><br>"+
+        "🤝 Commission Faso Tricycle (10 %) : <strong>"+
+        Number(data.commission || 0).toLocaleString()+
+        " FCFA</strong><br>"+
+        "👨🏾‍✈️ Revenu conducteur : <strong>"+
+        Number(data.revenuConducteur || 0).toLocaleString()+
+        " FCFA</strong>";
+    }
 
   }catch(e){
 
