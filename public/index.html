@@ -629,6 +629,7 @@ Faso Tricycle 🇧🇫 — Version V3
 <script>
 
 const API =
+  location.protocol === "http:" &&
   (location.hostname === "127.0.0.1" ||
    location.hostname === "localhost")
     ? "http://127.0.0.1:3000/api"
