@@ -297,6 +297,69 @@ function verifierAdmin(req, res, next) {
 
 app.use(express.static(path.join(__dirname, "public")));
 
+app.post("/api/calcul-tarif", (req, res) => {
+  try {
+    const departLat = Number(req.body.departLat);
+    const departLng = Number(req.body.departLng);
+    const destinationLat = Number(req.body.destinationLat);
+    const destinationLng = Number(req.body.destinationLng);
+
+    if (
+      !Number.isFinite(departLat) ||
+      !Number.isFinite(departLng) ||
+      !Number.isFinite(destinationLat) ||
+      !Number.isFinite(destinationLng) ||
+      !coordonneeValide(departLat, departLng) ||
+      !coordonneeValide(destinationLat, destinationLng)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        erreur: "Coordonnées GPS invalides."
+      });
+    }
+
+    const distance = distanceKm(
+      departLat,
+      departLng,
+      destinationLat,
+      destinationLng
+    );
+
+    let tarif;
+
+    if (distance <= 5) {
+      tarif = 3000;
+    } else if (distance <= 10) {
+      tarif = 5000;
+    } else {
+      tarif = Math.max(5000, Math.ceil(distance) * 500);
+    }
+
+    const fraisClient = Math.round(tarif * 0.05);
+    const totalClient = tarif + fraisClient;
+    const commission = Math.round(tarif * 0.10);
+    const revenuConducteur = tarif - commission;
+
+    res.json({
+      ok: true,
+      distanceKm: Number(distance.toFixed(2)),
+      tarif,
+      fraisClient,
+      totalClient,
+      commission,
+      revenuConducteur
+    });
+
+  } catch (error) {
+    console.error("Erreur calcul tarif :", error);
+
+    res.status(500).json({
+      ok: false,
+      erreur: "Erreur pendant le calcul du tarif."
+    });
+  }
+});
+
 app.get("/api/conducteurs", async (req, res) => {
   try {
     const conducteurs = await lireConducteursDB();
